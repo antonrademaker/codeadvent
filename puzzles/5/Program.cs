@@ -20,9 +20,7 @@ namespace _5
 
             Console.WriteLine($"highestSeatId : {highestSeatId}");
 
-            
-
-            for (int pos = 0; pos < highestSeatId-1;pos++)
+            for (int pos = 0; pos < highestSeatId - 1; pos++)
             {
                 Console.WriteLine($"{pos}: SeatID : {passes[pos].seatId}");
 
@@ -32,7 +30,6 @@ namespace _5
                     break;
                 }
             }
-
         }
 
         private static Boardingpass ParseBoardingpass(string input)
@@ -46,7 +43,7 @@ namespace _5
         private static int Parse(string input, int posOffset, int positionsToRead)
         {
             var lbound = 0;
-            var ubound = (int)Math.Pow(2,positionsToRead) -1;
+            var ubound = (int)Math.Pow(2, positionsToRead) - 1;
             int halvingSize;
 
             for (int pos = 0; pos < positionsToRead; pos++)
