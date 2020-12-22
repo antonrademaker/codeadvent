@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace _11
 {
@@ -30,7 +31,7 @@ namespace _11
         {
             public ImmutableArray<TileBorder> NeighbourCandidates { get; init; } = ImmutableArray.Create<TileBorder>();
             //public ImmutableArray<int> Neighbours { get; init; } = ImmutableArray.Create(0, 0, 0, 0);
-          
+
             public int Rotations { get; init; }
             public bool IsFlipedTB { get; init; }
             public bool IsFlipedLR { get; init; }
@@ -67,21 +68,19 @@ namespace _11
             }
         }
 
-        
+
 
         private static Dictionary<long, List<TileBorder>> CalculateStep1(string[] instructions, Tiles tiles, List<TileBorder> allSides)
         {
             var pos = 0;
 
-            var positions = Enumerable.Range(0, 10).SelectMany(x => Enumerable.Range(0, 10).Select(y => (x, y))).ToArray(); ;
+            var positions = Enumerable.Range(0, 10).SelectMany(x => Enumerable.Range(0, 10).Select(y => (y, x))).ToArray(); ;
 
             while (pos < instructions.Length)
             {
                 if (pos % 12 == 0)
                 {
                     // New tile
-
-                    Console.WriteLine($"pos: {pos}: {instructions[pos]}");
 
                     var tileId = int.Parse(instructions[pos].Replace("Tile ", string.Empty).Replace(":", String.Empty));
 
@@ -95,16 +94,15 @@ namespace _11
 
                     foreach (var position in positions)
                     {
-                        data[position.y, position.x] = ParsePosition(instructions[position.y][position.x]);
+                        data[position.y, position.x] = ParsePosition(instructions[position.y + pos + 1][position.x]);
                     }
-
 
                     allSides.AddRange(sides);
                     // Add all the reversed sides as well
                     allSides.AddRange(sides.Select(x => x with { Direction = Direction.RL, SideValue = Reverse(x.SideValue) }));
                     tiles.Add(tileId, new Tile(tileId, sides.ToArray(), data));
 
-                    
+
                 }
                 pos += 12;
             }
@@ -113,7 +111,7 @@ namespace _11
 
             foreach (var sideGroup in matcher.Values.Where(t => t.Count > 1))
             {
-                Console.WriteLine($"Value: {sideGroup.First().SideValue} values: {sideGroup.Count}");
+                //Console.WriteLine($"Value: {sideGroup.First().SideValue} values: {sideGroup.Count}");
 
                 AddNeighbour(sideGroup, 0, tiles);
                 AddNeighbour(sideGroup, 1, tiles);
@@ -156,10 +154,9 @@ namespace _11
         {
             var values = enumerable.Select(v => ParsePosition(v));
 
-            var valA = new BitArray(values.ToArray());            
+            var valA = new BitArray(values.ToArray());
 
             yield return new TileBorder(GetLongFromBitArray(valA), side, Direction.LR, tileId);
-            //yield return new TileBorder(GetLongFromBitArray(valB), side, Direction.RL, tileId);
         }
 
         private static long GetLongFromBitArray(BitArray bitArray)
@@ -169,7 +166,7 @@ namespace _11
             return BitConverter.ToInt64(array, 0);
         }
 
-        public record LocationMask(int x, int y);
+        public record LocationMask(int y, int x);
 
         public static long Reverse(long input)
         {
@@ -208,7 +205,7 @@ namespace _11
 
             var size = (int)Math.Sqrt(tiles.Count);
 
-            var borderedImage = new Tile[size,size];
+            var borderedImage = new Tile[size, size];
 
             var firstTile = tiles[corners[0]]; //.Select(tileId => tiles[tileId]).First(t => t.NeighbourCandidates.All(nc => nc.Side == Side.Right || nc.Side == Side.Bottom));
 
@@ -220,20 +217,22 @@ namespace _11
 
                 if (!firstTile.NeighbourCandidates.Any(t => t.Side == Side.Right))
                 {
+
                     firstTile = Rotate(firstTile);
                 }
                 else
                 {
+
                     firstTile = FlipTB(firstTile);
                 }
             }
 
-            borderedImage[0,0] = firstTile;
+            borderedImage[0, 0] = firstTile;
             CalculateYTiles(tiles, indexedSides, size, borderedImage, 0);
 
             for (int xpos = 1; xpos < size; xpos++)
             {
-                var tileLeft = borderedImage[0,xpos -1];
+                var tileLeft = borderedImage[0, xpos - 1];
                 var tileLeftRightSide = tileLeft.Sides.First(t => t.Side == Side.Right);
 
                 var tileBorder = indexedSides[tileLeftRightSide.SideValue].First(t => t.TileId != tileLeft.Id);
@@ -255,22 +254,140 @@ namespace _11
                 CalculateYTiles(tiles, indexedSides, size, borderedImage, xpos);
             }
 
-            for(var i = 0; i < size; i++)
+            var image = new char[size * 8, size * 8];
+
+            for (var i = 0; i < size; i++)
             {
                 for (var j = 0; j < size; j++)
                 {
-                    Console.Write($"{borderedImage[i,j].Id}\t");
+                    var partialImage = borderedImage[i, j];
+                    for (var y = 1; y < 9; y++)
+                    {
+                        for (var x = 1; x < 9; x++)
+                        {
+                            image[i * 8 + y - 1, j * 8 + x - 1] = PrintBool(partialImage.Data[y, x]);
+                        }
+                    }
                 }
-                Console.WriteLine();
+            }
+            var imageSize = size * 8;
+            var monster = new LocationMask[] { new LocationMask(0,18),
+                new LocationMask(1,0),new LocationMask(1,5),new LocationMask(1,6),new LocationMask(1,11),new LocationMask(1,12),new LocationMask(1,17),new LocationMask(1,18),new LocationMask(1,19)
+                ,new LocationMask(2,1),new LocationMask(2,4),new LocationMask(2,7),new LocationMask(2,10),new LocationMask(2,13),new LocationMask(2,16)
+
+            };
+
+
+            var found = Scan(image, monster, imageSize);
+            if (found == 0)
+            {
+                image = ScanImage(image, imageSize, monster);
             }
 
+            // We found the image
+
+
+            Console.WriteLine($"Found!");
+            Print(image, imageSize, t => t);
+
+            var cnt = 0;
+
+            foreach (var p in image)
+            {
+                if (p == '#')
+                {
+                    cnt++;
+                }
+            }
+            Console.WriteLine($"Answer: {cnt}");
+        }
+
+        private static char[,] ScanImage(char[,] image, int imageSize, LocationMask[] monster)
+        {
+            for (var flipped = 0; flipped < 2; flipped++)
+            {
+                for (var rotated = 0; rotated < 4; rotated++)
+                {
+                    var found = Scan(image, monster, imageSize);
+                    if (found > 0)
+                    {
+                        return image;
+                    }
+
+                    image = Rotate(image, imageSize);
+                }
+                Console.WriteLine("Flipping");
+
+                image = FlipTB(image, imageSize);
+            }
+
+            return image;
+        }
+
+        private static int Scan(char[,] image, LocationMask[] monster, int imageSize)
+        {
+            const int mWidth = 20;
+            const int mHeight = 3;
+
+
+            var yPos = 0;
+
+            var found = 0;
+
+            while (yPos < imageSize - mHeight)
+            {
+                var xPos = 0;
+                while (xPos < imageSize - mWidth)
+                {
+                    if (monster.All(m => image[yPos + m.y, xPos + m.x] == '#'))
+                    {
+                        found++;
+
+                        // Mark 
+
+                        foreach (var m in monster)
+                        {
+                            image[yPos + m.y, xPos + m.x] = 'O';
+                        }
+
+                    }
+
+                    xPos++;
+                }
+                yPos++;
+            }
+
+            return found;
+        }
+
+        private static void Print<T>(T[,] image, int size, Func<T, char> printer)
+        {
+            var sb = new StringBuilder();
+
+            for (var i = 0; i < size; i++)
+            {
+                for (var j = 0; j < size; j++)
+                {
+                    sb.Append(printer(image[i, j]));
+                }
+                sb.AppendLine();
+            }
+
+            Console.WriteLine(sb.ToString());
+        }
+
+        private enum Pixel
+        {
+            Hash,
+            Dot,
+            Monster
         }
 
         private static void CalculateYTiles(Tiles tiles, Dictionary<long, List<TileBorder>> indexedSides, int size, Tile[,] borderedImage, int column)
         {
             for (int ypos = 1; ypos < size; ypos++)
             {
-                var tileAbove = borderedImage[ypos - 1,column];
+                var tileAbove = borderedImage[ypos - 1, column];
 
                 var tileAboveBottom = tileAbove.Sides.First(t => t.Side == Side.Bottom);
 
@@ -292,9 +409,11 @@ namespace _11
                     tile = FlipLR(tile);
                 }
 
-                borderedImage[ypos,column] = tile;
+                borderedImage[ypos, column] = tile;
             }
         }
+
+        private static Func<bool, char> PrintBool = v => v ? '#' : '.';
 
         private static Tile FlipTB(Tile firstTile)
         {
@@ -354,7 +473,8 @@ namespace _11
                 if (neighbourCandidates[i].Side is Side.Left or Side.Right)
                 {
                     neighbourCandidates = neighbourCandidates.SetItem(i, FlipTBDirection(neighbourCandidates[i]));
-                } else
+                }
+                else
                 {
                     neighbourCandidates = neighbourCandidates.SetItem(i, FlipTBOrientation(neighbourCandidates[i]));
                 }
@@ -397,9 +517,9 @@ namespace _11
             };
         }
 
-        private static bool[,] FlipTB(bool[,] data, int size)
+        private static T[,] FlipTB<T>(T[,] data, int size)
         {
-            bool[,] result = new bool[size, size];
+            var result = new T[size, size];
 
             for (int i = 0; i < size; ++i)
             {
@@ -445,7 +565,8 @@ namespace _11
 
         private static ImmutableArray<TileBorder> Rotate(ImmutableArray<TileBorder> neighbourCandidates)
         {
-            for (var i = 0; i < neighbourCandidates.Length; i++) {
+            for (var i = 0; i < neighbourCandidates.Length; i++)
+            {
                 neighbourCandidates = neighbourCandidates.SetItem(i, Rotate(neighbourCandidates[i]));
             }
 
@@ -454,7 +575,8 @@ namespace _11
 
         private static TileBorder Rotate(TileBorder tileBorder)
         {
-            if (tileBorder.Side == Side.Left || tileBorder.Side == Side.Right) {
+            if (tileBorder.Side == Side.Left || tileBorder.Side == Side.Right)
+            {
                 return tileBorder with
                 {
                     Side = (Side)((((int)tileBorder.Side) + 1) % 4),
@@ -469,9 +591,9 @@ namespace _11
             };
         }
 
-        private static bool[,] Rotate(bool[,] data, int size)
+        private static T[,] Rotate<T>(T[,] data, int size)
         {
-            bool[,] result = new bool[size, size];
+            var result = new T[size, size];
 
             for (int i = 0; i < size; ++i)
             {
