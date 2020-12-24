@@ -147,7 +147,7 @@ namespace _11
 
             current.TryGetValue(location, out var isBlack);
 
-            return isBlack ? ((black == 0 || black > 2) ? false : true) : (black == 2);
+            return (isBlack && (black != 0 && black <= 2)) || (!isBlack && black == 2);
         }
 
         #endregion Part 2
