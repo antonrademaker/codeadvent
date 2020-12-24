@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace _11
 {
@@ -132,7 +133,7 @@ namespace _11
                     }
                 }
             }
-            return next;
+            return next.Where(t => t.Value).ToDictionary(t => t.Key, t => t.Value);
         }
 
         public static bool Calculate(Dictionary<(int, int, int), bool> current, (int, int, int) location)
