@@ -68,11 +68,8 @@ foreach (var line in lines)
 
     if (!illegalFound && stack.Any())
     {
-        var score2 = 0L;
-        while (stack.TryPop(out char next))
-        {
-            score2 = (score2 * 5) + part2Scores[next];
-        }
+        var score2 = stack.Aggregate(0L, (acc, next) => (acc * 5) + part2Scores[next]);
+
         part2Score.Add(score2);
     }
 }
