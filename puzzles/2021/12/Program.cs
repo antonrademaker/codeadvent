@@ -8,6 +8,9 @@ foreach (var exampleFile in exampleFiles/*.Skip(2).Take(1)*/)
     Console.WriteLine(exampleFile);
     var file = File.ReadAllLines(exampleFile);
     CalculatePart1(file);
+    CalculatePart2(file);
+    Console.WriteLine("-- End of file--");
+
 }
 
 void CalculatePart1(string[] exampleFile)
@@ -27,11 +30,25 @@ void CalculatePart1(string[] exampleFile)
     var numberOfPaths = map.CalculatePaths();
 
     Console.WriteLine($"Found: {numberOfPaths}");
-    var numberOfPaths2 = map.CalculatePaths(new Cave("Visit twice", false));
-    Console.WriteLine($"Found part 2: {numberOfPaths2}");
 
-    Console.WriteLine("-- End of file--");
 
+}
+
+void CalculatePart2(string[] exampleFile)
+{
+    var map = new Map();
+
+    foreach (var line in exampleFile)
+    {
+        var parts = line.Split('-', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var left = parts[0];
+        var right = parts[1];
+
+        map.AddConnection(left, right);
+    }
+    var numberOfPaths = map.CalculatePaths(new Cave("Visit twice", false));
+    Console.WriteLine($"Found part 2: {numberOfPaths}");
 }
 
 public class Map
@@ -67,7 +84,7 @@ public class Map
     {
         var leftCave = GetCave(left);
         var rightCave = GetCave(right);
-
+        
         Connections.Add(new Connection(leftCave, rightCave));
         Connections.Add(new Connection(rightCave, leftCave));
     }
@@ -110,15 +127,14 @@ public class Map
 
                 var alreadyVisited = potential.Count(t => t.EdgeB == nextConnection.EdgeB);
 
-
                 if (alreadyVisited == 1 && edgeCase != null && !candidate.Any(t => t.EdgeA == edgeCase))
                 {
                     candidate = candidate.Add(new Connection(edgeCase, nextConnection.EdgeB));
                     alreadyVisited = 0;
                 }
+                    
 
-
-                if (nextConnection.EdgeB.IsBig || alreadyVisited == 0)
+                if (alreadyVisited == 0)
                 {
                     PotentialPaths.Enqueue(candidate);
                 }
@@ -132,6 +148,9 @@ public class Map
 
         return EndingPaths.Count;
     }
+
+
+
     internal Cave GetCave(string name)
     {
         var isBig = name.All(c => char.IsUpper(c));
@@ -149,3 +168,14 @@ public class Map
 public record Connection(Cave EdgeA, Cave EdgeB);
 
 public record Cave(string Name, bool IsBig);
+
+//public class Cave
+//{
+//    public Cave(string name, bool isBig)
+//    {
+//        Name = name;
+//        IsBig = isBig;
+//    }
+//    public string Name { get; set; }
+//    public bool IsBig { get; set; }
+//}
