@@ -1,6 +1,5 @@
-﻿using System.Collections.Immutable;
+﻿
 using System.Text;
-using System.Text.RegularExpressions;
 
 var inputFiles = new string[] { "input/example.txt", "input/input.txt" };
 
@@ -34,9 +33,9 @@ void CalculatePart2(string[] lines)
 
 public class Paper
 {
-    public HashSet<Point> Positions { get; private set; } = new();
+    public readonly HashSet<Point> Positions = new();
 
-    private Queue<string> FoldsToApply = new();
+    private readonly Queue<string> FoldsToApply = new();
 
     public void Read(string[] lines)
     {
@@ -95,9 +94,9 @@ public class Paper
         var columns = Positions.Select(p => p.X).Max();
         var rows = Positions.Select(p => p.Y).Max();
 
-        for (int y = 0; y <= rows; y++)
+        for (var y = 0; y <= rows; y++)
         {
-            for(int x = 0; x <= columns; x++)
+            for(var x = 0; x <= columns; x++)
             {
                 if (Positions.Contains(new Point(x,y))) {
                     sb.Append('#');
