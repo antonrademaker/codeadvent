@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Text;
 
-var inputFiles = new string[] { "input/example.txt", "input/input.txt", "input/large.txt" };
+var inputFiles = new string[] { "input/example.txt", "input/input.txt", "input/large.txt", "input/xlarge.txt" };
 var sw = new Stopwatch();
 
 foreach (var exampleFile in inputFiles/*.Skip(2).Take(1)*/)
@@ -59,7 +59,7 @@ public class Paper
 
             if (readingPositions)
             {
-                var pos = line.Split(',').Select(int.Parse).ToArray();
+                var pos = line.Split(',').Select(long.Parse).ToArray();
                 Positions.Add(new Point(pos[0], pos[1]));
             }
             else
@@ -76,7 +76,7 @@ public class Paper
             var foldInstruction = fold.Split(' ')[2].Split('=');
 
             var axis = foldInstruction[0];
-            var value = int.Parse(foldInstruction[1]);
+            var value = long.Parse(foldInstruction[1]);
 
             Console.WriteLine($"Fold along {axis} {value}");
 
@@ -121,4 +121,4 @@ public class Paper
     }
 }
 
-public record Point(int X, int Y);
+public record Point(long X, long Y);
