@@ -1,16 +1,24 @@
 ﻿
+using System.Diagnostics;
 using System.Text;
 
-var inputFiles = new string[] { "input/example.txt", "input/input.txt" };
+var inputFiles = new string[] { "input/example.txt", "input/input.txt", "input/large.txt" };
+var sw = new Stopwatch();
 
 foreach (var exampleFile in inputFiles/*.Skip(2).Take(1)*/)
 {
     Console.WriteLine(exampleFile);
     var file = File.ReadAllLines(exampleFile);
+    sw.Start();
     CalculatePart1(file);
+    sw.Stop();
+    Console.WriteLine($"Part 1 in {sw.ElapsedMilliseconds}ms");
+    sw.Reset();
+    sw.Start();
     CalculatePart2(file);
+    sw.Stop();
+    Console.WriteLine($"Part 2 in {sw.ElapsedMilliseconds}ms");
     Console.WriteLine("-- End of file--");
-
 }
 
 void CalculatePart1(string[] lines)
