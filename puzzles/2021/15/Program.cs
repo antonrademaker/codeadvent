@@ -45,7 +45,6 @@ void Calculate(string[] lines, int repeat)
     var risk = processor.CalculateRiskPath();
 
     Console.WriteLine($"Minimal risk: {risk}");
-    processor.Print();
 }
 
 public class Processor
@@ -120,11 +119,6 @@ public class Processor
         }
 
         return Map[new Point(0, 0)].PathRiskLevel;
-    }
-
-    public void Print()
-    {
-
     }
 }
 
