@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Numerics;
 using System.Text;
 
 var inputFiles = new string[] { "input/example.txt", "input/input.txt" };
@@ -17,6 +18,11 @@ foreach (var exampleFile in inputFiles)
     CalculatePart2(file);
     sw.Stop();
     Console.WriteLine($"Part 2 in {sw.ElapsedMilliseconds}ms");
+    sw.Reset();
+    sw.Start();
+    CalculatePart3(file);
+    sw.Stop();
+    Console.WriteLine($"Part 3 in {sw.ElapsedMilliseconds}ms");
     Console.WriteLine("-- End of file--");
 }
 
@@ -29,6 +35,13 @@ void CalculatePart1(string[] lines)
 void CalculatePart2(string[] lines)
 {
     var steps = 40;
+    Calculate(lines, steps);
+}
+
+
+void CalculatePart3(string[] lines)
+{
+    var steps = 50000;
     Calculate(lines, steps);
 }
 
@@ -50,7 +63,7 @@ public class Processor
 {
     public string polymer = string.Empty;
 
-    public Dictionary<Pair, long> pairs = new();
+    public Dictionary<Pair, BigInteger> pairs = new();
 
     public Dictionary<Pair, char> Rules = new();
 
@@ -66,7 +79,7 @@ public class Processor
 
                 for (var i = 0; i < polymer.Length - 1; i++)
                 {
-                    pairs.Upsert(new Pair(polymer[i], polymer[i + 1]));
+                    pairs.Upsert(new Pair(polymer[i], polymer[i + 1]), new BigInteger(1));
                 }
 
                 readingTemplate = false;
@@ -82,10 +95,10 @@ public class Processor
 
     public void CalculateNextStep()
     {
-        pairs = pairs.Aggregate(new Dictionary<Pair, long>(), (acc, pair) => CalculatePairs(acc, pair));
+        pairs = pairs.Aggregate(new Dictionary<Pair, BigInteger>(), (acc, pair) => CalculatePairs(acc, pair));
     }
 
-    private Dictionary<Pair, long> CalculatePairs(Dictionary<Pair, long> next, KeyValuePair<Pair, long> pair)
+    private Dictionary<Pair, BigInteger> CalculatePairs(Dictionary<Pair, BigInteger> next, KeyValuePair<Pair, BigInteger> pair)
     {
         var insert = Rules[pair.Key];
 
@@ -98,7 +111,7 @@ public class Processor
 
         var pairsToCheck = pairs.ToDictionary(entry => entry.Key, entry => entry.Value);
         // Insert the last polymer (not counted otherwise)
-        pairsToCheck = pairsToCheck.Upsert(new Pair(polymer[^1], '0'));
+        pairsToCheck = pairsToCheck.Upsert(new Pair(polymer[^1], '0'), new BigInteger(1));
 
         var histogram = pairsToCheck.Select(pair => new { ch = pair.Key.A, count = pair.Value }).GroupBy(t => t.ch).Select(t => new { ch = t.Key, count = t.Sum(x => x.count) }).ToList();
 
@@ -117,15 +130,23 @@ public class Processor
 public static class Helpers
 {
 
-    public static Dictionary<T, long> Upsert<T>(this Dictionary<T, long> pairs, T pair, long currentValue = 1) where T : class
+    public static Dictionary<T, BigInteger> Upsert<T>(this Dictionary<T, BigInteger> pairs, T pair, BigInteger currentValue) where T : class
     {
-        if (pairs.TryGetValue(pair, out var count))
+        if (pairs.ContainsKey(pair))
         {
-            currentValue += count;
+            pairs[pair] += currentValue;
         }
-        pairs[pair] = currentValue;
+        else
+        {
+            pairs[pair] = currentValue;
+        }
 
         return pairs;
+    }
+
+    public static BigInteger Sum<T>(this IEnumerable<T> ts, Func<T, BigInteger> selector)
+    {
+        return ts.Aggregate(new BigInteger(0), (acc, b) => acc + selector(b));
     }
 }
 
