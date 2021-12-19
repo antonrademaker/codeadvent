@@ -38,8 +38,10 @@ void CalculatePart1(string[] lines)
     var allToFind = scanners.Skip(1).Select(GeneratePermuations);
 
     var knownBeacons = new List<Vector3>(scanners[0].Beacons);
-    var scannerLocations = new List<Vector3>();
-    scannerLocations.Add(Vector3.Zero);
+    var scannerLocations = new List<Vector3>
+    {
+        Vector3.Zero
+    };
     var queue = new Queue<Scanner>();
 
     foreach (var scanner in allToFind)
@@ -47,14 +49,10 @@ void CalculatePart1(string[] lines)
         queue.Enqueue(scanner);
     }
 
-
     while (queue.TryDequeue(out var scanner))
     {
-        //  Console.WriteLine($"Testing scanner {scanner.Id}");
         if (FindMatch(knownBeacons, scanner, out var offsets, out var beaconBositions))
         {
-       //     Console.WriteLine($"Found a match :D, scanner: {scanner.Id} offset: {string.Join(',', offsets)}");
-
             knownBeacons.AddRange(beaconBositions.Select(t => t - offsets));
             scannerLocations.Add(offsets);
         }
@@ -62,7 +60,6 @@ void CalculatePart1(string[] lines)
         {
             queue.Enqueue(scanner);
         }
-
     }
 
 
@@ -70,9 +67,9 @@ void CalculatePart1(string[] lines)
 
     var maxDistance = 0;
 
-    for (var i = 0; i < scannerLocations.Count; i++)
+    for (var i = 0; i < scannerLocations.Count - 1; i++)
     {
-        for (var j = 0; j < scannerLocations.Count; j++)
+        for (var j = i + 1; j < scannerLocations.Count; j++)
         {
             var distance = Vector3.ManhattanDist(scannerLocations[i], scannerLocations[j]);
             maxDistance = Math.Max(maxDistance, distance);
@@ -138,7 +135,6 @@ List<Scanner> ReadScanners(string[] lines)
             continue;
         }
         var location = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray();
-        // scanner.Beacons.Add(location);
         scanner.Beacons.Add(Vector3.Parse(line));
     }
     return scanners;
@@ -152,7 +148,6 @@ Scanner GeneratePermuations(Scanner scanner)
     }
     return scanner;
 }
-
 
 public class Scanner
 {
