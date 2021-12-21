@@ -8,6 +8,7 @@ var inputFiles = new string[] {
 };
 var sw = new Stopwatch();
 
+Console.WriteLine($"{Helpers.SpacialTransformations.Count()}");
 
 foreach (var exampleFile in inputFiles)
 {
@@ -34,48 +35,43 @@ void CalculatePart1(string[] lines)
 {
     var scanners = ReadScanners(lines);
 
-    var all = scanners.Skip(1).Select(GeneratePermutations).ToDictionary(t => t.Id, t => t);
+    var allToFind = scanners.Skip(1).Select(GeneratePermuations);
 
-    all.Add(scanners[0].Id, scanners[0]);
-
-    scanners[0].IsLocated = true;
-
-    var knownBeacons = new List<Beacon>(scanners[0].Beacons.Select(b => new Beacon(b[0], b[1], b[2])));
-    var scannerLocations = new List<int[]>();
-
-    var changed = true;
-
-    while (changed)
+    var knownBeacons = new List<Vector3>(scanners[0].Beacons);
+    var scannerLocations = new List<Vector3>
     {
-        changed = false;
+        Vector3.Zero
+    };
+    var queue = new Queue<Scanner>();
 
-        foreach (var scanner in all.Where(t => !t.Value.IsLocated))
+    foreach (var scanner in allToFind)
+    {
+        queue.Enqueue(scanner);
+    }
+
+    while (queue.TryDequeue(out var scanner))
+    {
+        if (FindMatch(knownBeacons, scanner, out var offsets, out var beaconBositions))
         {
-            if (FindMatch(knownBeacons, scanner.Value, out int[] offsets, out var beaconBositions))
-            {
-                changed = true;
-                Console.WriteLine($"Found a match :D, scanner: {scanner.Key} offset: {string.Join(',', offsets)}");
-
-                knownBeacons.AddRange(beaconBositions.Select(t => new Beacon(t[0] + offsets[0], t[1] + offsets[1], t[2] + offsets[2])));
-                scannerLocations.Add(offsets);
-                scanner.Value.IsLocated = true;
-            }
-
+            knownBeacons.AddRange(beaconBositions.Select(t => t - offsets));
+            scannerLocations.Add(offsets);
+        }
+        else
+        {
+            queue.Enqueue(scanner);
         }
     }
+
 
     Console.WriteLine($"Number: {knownBeacons.Distinct().Count()} ({knownBeacons.Count})");
 
     var maxDistance = 0;
 
-    for (var i = 0; i < scannerLocations.Count; i++)
+    for (var i = 0; i < scannerLocations.Count - 1; i++)
     {
         for (var j = i + 1; j < scannerLocations.Count; j++)
         {
-            var distance = Math.Abs(scannerLocations[i][0] - scannerLocations[j][0]) +
-                Math.Abs(scannerLocations[i][1] - scannerLocations[j][1]) +
-                Math.Abs(scannerLocations[i][2] - scannerLocations[j][2]);
-            
+            var distance = Vector3.ManhattanDist(scannerLocations[i], scannerLocations[j]);
             maxDistance = Math.Max(maxDistance, distance);
         }
     }
@@ -84,35 +80,34 @@ void CalculatePart1(string[] lines)
 }
 
 
-bool FindMatch(List<Beacon> knownBeacons, Scanner scanner, out int[] offsets, out IEnumerable<int[]> beaconBositions)
+bool FindMatch(List<Vector3> knownBeacons, Scanner scanner, out Vector3 offsets, out IEnumerable<Vector3> beaconBositions)
 {
     foreach (var candidate in scanner.Permutations)
     {
-        var cnt = new Dictionary<string, int>();
+        var cnt = new Dictionary<Vector3, int>();
 
         foreach (var candidateBeacon in candidate)
         {
             foreach (var known in knownBeacons)
             {
-                var p = new int[3] { known.X - candidateBeacon[0], known.Y - candidateBeacon[1], known.Z - candidateBeacon[2] };
-                var pKey = string.Join(',', p);
+                var offset = candidateBeacon - known;
                 var matches = 1;
-                if (cnt.TryGetValue(pKey, out var value))
+                if (cnt.TryGetValue(offset, out var value))
                 {
                     matches += value;
                 }
-                cnt[pKey] = matches;
                 if (matches >= 12)
                 {
-                    offsets = p;
+                    offsets = offset;
                     beaconBositions = candidate;
                     return true;
                 }
+                cnt[offset] = matches;
             }
         }
     }
-    offsets = Array.Empty<int>();
-    beaconBositions = Enumerable.Empty<int[]>();
+    offsets = default;
+    beaconBositions = Enumerable.Empty<Vector3>();
     return false;
 }
 
@@ -140,41 +135,16 @@ List<Scanner> ReadScanners(string[] lines)
             continue;
         }
         var location = line.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray();
-        scanner.Beacons.Add(location);
+        scanner.Beacons.Add(Vector3.Parse(line));
     }
     return scanners;
 }
 
-Scanner GeneratePermutations(Scanner scanner)
+Scanner GeneratePermuations(Scanner scanner)
 {
-    var axis = new int[] { -1, 1 };
-    var permutations = new List<int> { 0, 1, 2 }.GetPermutations(3).Select(t => t.ToArray()).ToArray();
-
-    for (var xaxis = 0; xaxis < 2; xaxis++)
+    foreach (var transformation in Helpers.SpacialTransformations)
     {
-        for (var yaxis = 0; yaxis < 2; yaxis++)
-        {
-            for (var zaxis = 0; zaxis < 2; zaxis++)
-            {
-                for (var perm = permutations.Length - 1; perm >= 0; perm--)
-                {
-                    var beaconPerms = new List<int[]>();
-                    foreach (var b in scanner.Beacons)
-                    {
-                        var permutation = new int[3];
-
-                        permutation[permutations[perm][0]] = b[0] * axis[xaxis];
-                        permutation[permutations[perm][1]] = b[1] * axis[yaxis];
-                        permutation[permutations[perm][2]] = b[2] * axis[zaxis];
-
-                        beaconPerms.Add(permutation);
-
-                    }
-                    scanner.Permutations.Add(beaconPerms);
-                }
-            }
-        }
-
+        scanner.Permutations.Add(scanner.Beacons.Select(transformation).ToList());
     }
     return scanner;
 }
@@ -182,23 +152,68 @@ Scanner GeneratePermutations(Scanner scanner)
 public class Scanner
 {
     public int Id { get; init; }
-    public List<int[]> Beacons { get; init; } = new();
-    public List<List<int[]>> Permutations { get; init; } = new();
-
-    public bool IsLocated { get; set; }
+    public List<List<Vector3>> Permutations { get; init; } = new();
+    public List<Vector3> Beacons { get; init; } = new();
 }
 
 public static class Helpers
 {
-    public static IEnumerable<IEnumerable<T>> GetPermutations<T>(this IEnumerable<T> list, int length)
-    {
-        if (length == 1) return list.Select(t => new T[] { t });
+    public static readonly Func<Vector3, Vector3>[] SpacialTransformations = new Func<Vector3, Vector3>[]{
+        v => v,
 
-        return GetPermutations(list, length - 1)
-            .SelectMany(t => list.Where(e => !t.Contains(e)),
-                (t1, t2) => t1.Concat(new T[] { t2 }));
-    }
+        v => new(v.X, -v.Z, v.Y),
+        v => new (v.X, -v.Y, -v.Z),
+        v => new (v.X, v.Z, -v.Y),
+
+        v => new (-v.Y, v.X, v.Z),
+        v => new (v.Z, v.X, v.Y),
+        v => new (v.Y, v.X, -v.Z),
+        v => new (-v.Z, v.X, -v.Y),
+
+        v => new (-v.X, -v.Y, v.Z),
+        v => new (-v.X, -v.Z, -v.Y),
+        v => new (-v.X, v.Y, -v.Z),
+        v => new (-v.X, v.Z, v.Y),
+
+        v => new (v.Y, -v.X, v.Z),
+        v => new (v.Z, -v.X, -v.Y),
+        v => new (-v.Y, -v.X, -v.Z),
+        v => new (-v.Z, -v.X, v.Y),
+
+        v => new (-v.Z, v.Y, v.X),
+        v => new (v.Y, v.Z, v.X),
+        v => new (v.Z, -v.Y, v.X),
+        v => new (-v.Y, -v.Z, v.X),
+
+        v => new (-v.Z, -v.Y, -v.X),
+        v => new (-v.Y, v.Z, -v.X),
+        v => new (v.Z, v.Y, -v.X),
+        v => new (v.Y, -v.Z, -v.X)
+    };
 
 }
 
-public record Beacon(int X, int Y, int Z);
+public record struct Vector3(int X, int Y, int Z) : IComparable<Vector3>
+{
+    public static Vector3 Zero { get; } = new(0, 0, 0);
+    public static implicit operator (int X, int Y, int Z)(Vector3 value) => (value.X, value.Y, value.Z);
+    public static implicit operator Vector3((int X, int Y, int Z) value) => new(value.X, value.Y, value.Z);
+    public static Vector3 Parse(string input)
+        => input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(int.Parse).ToArray() is { Length: 3 } v
+            ? new(v[0], v[1], v[2])
+            : throw new FormatException("Invalid dimension!");
+    public static Vector3 operator +(Vector3 lhs, Vector3 rhs) => new(lhs.X + rhs.X, lhs.Y + rhs.Y, lhs.Z + rhs.Z);
+    public static Vector3 operator -(Vector3 lhs, Vector3 rhs) => new(lhs.X - rhs.X, lhs.Y - rhs.Y, lhs.Z - rhs.Z);
+    public static int operator *(Vector3 lhs, Vector3 rhs) => lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z;
+    public static int ManhattanDist(Vector3 lhs, Vector3 rhs) => Math.Abs(lhs.X - rhs.X) + Math.Abs(lhs.Y - rhs.Y) + Math.Abs(lhs.Z - rhs.Z);
+    public override string ToString() => $"{X},{Y},{Z}";
+    public int CompareTo(Vector3 other)
+    {
+        var cx = X.CompareTo(other.X);
+        if (cx != 0) return cx;
+        var cy = Y.CompareTo(other.Y);
+        if (cy != 0) return cy;
+        var cz = Z.CompareTo(other.Z);
+        return cz != 0 ? cz : 0;
+    }
+}
