@@ -32,7 +32,7 @@ foreach (var exampleFile in inputFiles)
 
 void CalculatePart1(string[] lines)
 {
-    var map = new Map();
+    var map = new MapPart1();
 
     var roomLine1 = lines[2].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
     var roomLine2 = lines[3].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
@@ -58,7 +58,49 @@ void CalculatePart1(string[] lines)
     }
 
     positions.Print();
+    long currentLow = CalculateLowestEnergy(map, positions);
+    Console.WriteLine($"Lowest: {currentLow}");
+}
 
+void CalculatePart2(string[] lines)
+{
+    var map = new MapPart2();
+
+    var extraLines = new string[] { "#D#C#B#A#", "#D#B#A#C#" };
+
+    var roomLine1 = lines[2].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
+    var roomLine2 = extraLines[0].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
+    var roomLine3 = extraLines[1].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
+    var roomLine4 = lines[3].Split('#', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(s => s[0]).ToArray();
+
+    var positions = ImmutableDictionary<int, Letter>.Empty;
+    var startPosition = 11;
+
+    for (var x = 0; x < roomLine2.Length; x++)
+    {
+        positions = positions.Add(startPosition++, LetterFactory(roomLine1[x]));
+        positions = positions.Add(startPosition++, LetterFactory(roomLine2[x]));
+        positions = positions.Add(startPosition++, LetterFactory(roomLine3[x]));
+        positions = positions.Add(startPosition++, LetterFactory(roomLine4[x]));
+    }
+    // mark all positions as finished if possible
+    for (var y = 26; y > 10; y--)
+    {
+        if (map.Edges[y].Accepts == positions[y].Char && ((y - 11) % 4 == 3 || positions[y + 1].IsFinished))
+        {
+            var cur = positions[y];
+            positions = positions.Remove(y).Add(y, cur with { IsFinished = true });
+        }
+    }
+
+    positions.Print();
+    long currentLow = CalculateLowestEnergy(map, positions);
+    Console.WriteLine($"Lowest: {currentLow}");
+}
+
+
+long CalculateLowestEnergy(Map map, ImmutableDictionary<int, Letter> positions)
+{
     var queue = new PriorityQueue<(ImmutableDictionary<int, Letter>, long), int>();
 
     queue.Enqueue((positions, 0L), 0);
@@ -72,57 +114,33 @@ void CalculatePart1(string[] lines)
         (var state, var usedEnergy) = s;
         var newStates = map.CalculateNewStates(state, usedEnergy);
 
-    //    Console.WriteLine($"Retrieved from queue: {usedEnergy} / {8-good}");
-
-//        state.Print();
-        
-  //          Console.WriteLine($"Generating new states:");
-
         foreach (var newState in newStates)
         {
             if (newState.newState.All(t => t.Value.IsFinished))
             {
                 currentLow = Math.Min(currentLow, usedEnergy + newState.energy);
-             //   Console.WriteLine($"Finished {currentLow} ({queue.Count})");
             }
             else
             {
                 var newGood = newState.newState.Count(t => t.Value.IsFinished);
-                //Console.WriteLine($"New state: {newGood}, {usedEnergy + newState.energy}");
-
                 if (calculated.Add(CalculatePositionHash(newState.newState, usedEnergy + newState.energy)))
                 {
-
-      //              newState.newState.Print();
-
-                    queue.Enqueue((newState.newState, usedEnergy + newState.energy), 8 - newGood);
-                } else
-                {
-           //         Console.Write(".");
+                    queue.Enqueue((newState.newState, usedEnergy + newState.energy), 20 - newGood);
                 }
             }
         }
-        
-        //Console.WriteLine($"done queueing, new queue size: {queue.Count}");
-        // Console.ReadLine();
     }
 
-    Console.WriteLine($"Lowest: {currentLow}");
-
+    return currentLow;
 }
 
-long CalculatePositionHash(ImmutableDictionary<int, Letter> positions, long energy) {
-    var pHash = positions.Aggregate(1L, (acc, cur) => acc ^ (cur.Key * 997 * cur.Value.Char.GetHashCode() ) );
+long CalculatePositionHash(ImmutableDictionary<int, Letter> positions, long energy)
+{
+    var pHash = positions.Aggregate(1L, (acc, cur) => acc + (cur.Key * 997 * cur.Value.Char.GetHashCode()));
 
     return pHash * (991 * energy);
 }
-{
 
-}
-
-void CalculatePart2(string[] lines)
-{
-}
 
 Letter LetterFactory(char letter)
 {
@@ -141,11 +159,11 @@ public record Letter(char Char, int Weight)
     public bool IsFinished { get; init; }
 }
 
-public class Map
+public class MapPart1 : Map
 {
-
-    public Map()
+    public MapPart1()
     {
+        ColSize = 2;
         var cantStop = new List<int> { 2, 4, 6, 8 };
 
         var position = 11;
@@ -210,6 +228,94 @@ public class Map
             baseRow += colSize;
         }
     }
+}
+
+
+public class MapPart2 : Map
+{
+    public MapPart2()
+    {
+
+        ColSize = 4;
+
+        var cantStop = new List<int> { 2, 4, 6, 8 };
+
+        var position = 11;
+
+
+        Edges.AddRange(
+            Enumerable.Range(0, position).Select(i => new Edge
+            {
+                Id = i,
+                IsTopRow = true,
+                CantStop = cantStop.Contains(i)
+            }));
+
+
+        foreach (var c in "ABCD")
+        {
+            Edges.AddRange(Enumerable.Range(position, 4).Select(i => new Edge
+            {
+                Id = i,
+                Accepts = c
+            }));
+
+            position += 4;
+        }
+        Segments.Add(Edges[0], new List<Segment> {
+            new Segment(Edges[1])
+        });
+
+        for (var x = 1; x < 10; x++)
+        {
+
+            Segments.Add(Edges[x], new List<Segment> {
+                new Segment(Edges[x+1]),
+                new Segment(Edges[x-1])
+            });
+
+        }
+
+        Segments.Add(Edges[10], new List<Segment> {
+            new Segment(Edges[9])
+        });
+
+        var baseRow = 2;
+
+        var colStart = 11;
+
+        var colSize = 4;
+
+        for (int x = 0; x < 4; x++)
+        {
+            Segments[Edges[baseRow]].Add(new Segment(Edges[colStart]));
+
+            Segments.Add(Edges[colStart], new List<Segment> {
+                new Segment(Edges[baseRow])}
+            );
+
+            for (var col = 1; col < 4; col++)
+            {
+
+                Segments.Add(Edges[colStart + col], new List<Segment> {
+                    new Segment(Edges[colStart + col - 1])
+                });
+
+                Segments[Edges[colStart + col - 1]].Add(new Segment(Edges[colStart + col]));
+
+            }
+
+
+            colStart += colSize;
+            baseRow += 2;
+        }
+    }
+}
+
+public class Map
+{
+    public int ColSize = 0;
+
 
     public List<Edge> Edges { get; set; } = new();
 
@@ -225,7 +331,6 @@ public class Map
                 // move the letter
                 var newState = state.Remove(position).Add(newPosition.newPosition, newPosition.result);
 
-
                 yield return (newState, newPosition.newEnergy);
 
             }
@@ -236,16 +341,13 @@ public class Map
     {
         var dict = new Dictionary<int, long>();
 
-        if (letter.IsFinished)
-        {
-            throw new Exception("Cannot move letter, it's already finished");
-        }
+        var positionsVisited = ImmutableHashSet<int>.Empty;
 
-        foreach (var reachable in GetReachablePositions(dict, state, position, letter, false))
+        foreach (var (newPosition, newEnergy) in ReachablePositions(positionsVisited, dict, state, position, position, letter, false))
         {
-            if (!dict.ContainsKey(reachable.newPosition) || dict[reachable.newPosition] > reachable.newEnergy)
+            if (!dict.ContainsKey(newPosition) || dict[newPosition] > newEnergy) { }
             {
-                dict[reachable.newPosition] = reachable.newEnergy;
+                dict[newPosition] = newEnergy;
             }
         }
 
@@ -264,46 +366,23 @@ public class Map
             {
                 IsFinished = true
             };
-
         }
 
-        foreach (var destination in dict)
-        {
-            yield return (destination.Key, destination.Value, resultLetter);
-        }
-
-    }
-
-    private IEnumerable<(int newPosition, long newEnergy)> GetReachablePositions(Dictionary<int, long> dict, ImmutableDictionary<int, Letter> state, int position, Letter letter, bool switched)
-    {
-        var positionsVisited = ImmutableHashSet<int>.Empty;
-        foreach (var reachable in ReachablePositions(positionsVisited, dict, state, position, position, letter, switched))
-        {
-            yield return reachable;
-        }
-
+        return dict.Select(t => (t.Key, t.Value, resultLetter));
     }
 
     private IEnumerable<(int newPosition, long newEnergy)> ReachablePositions(ImmutableHashSet<int> positionsVisited, Dictionary<int, long> dict, ImmutableDictionary<int, Letter> state, int oldPosition, int position, Letter letter, bool switched)
     {
         var currentPosition = Edges[position];
 
-        if (position == 14)
-        {
-            //      Console.WriteLine(14);
-        }
-
         foreach (var reachable in Segments[currentPosition])
         {
-
             var newPosition = reachable.Other.Id;
 
             if (state.ContainsKey(newPosition))
             {
                 continue;
             }
-
-
 
             if (positionsVisited.Contains(newPosition))
             {
@@ -314,28 +393,13 @@ public class Map
 
             var hasSwitched = switched;
 
-
-            if (switched)
+            if (!switched && currentPosition.IsTopRow != Edges[newPosition].IsTopRow)
             {
-                //if (currentPosition.IsTopRow != Edges[newPosition].IsTopRow)
-                //{
-                //    continue;
-                //}
-
+                hasSwitched = true;
             }
-            else
-            {
-                if (currentPosition.IsTopRow != Edges[newPosition].IsTopRow)
-                {
-                    hasSwitched = true;
-                }
-            }
-
 
             var newEnergy = letter.Weight;
 
-            //if (!dict.ContainsKey(newPosition) || dict[newPosition] > newEnergy)
-            //{
             if (AllowedMove(state, oldPosition, newPosition, letter, hasSwitched))
             {
                 yield return (reachable.Other.Id, letter.Weight);
@@ -344,21 +408,10 @@ public class Map
             foreach (var steps in ReachablePositions(path, dict, state, oldPosition, newPosition, letter, hasSwitched))
             {
                 var energy = letter.Weight + steps.newEnergy;
-
-
-                //if (!dict.ContainsKey(steps.newPosition) || dict[steps.newPosition] > steps.newEnergy)
-                //{
-
-
-                //   dict[steps.newPosition] = steps.newEnergy;
-
                 yield return (steps.newPosition, energy);
-                // }
             }
-            //}
         }
     }
-
 
     private bool AllowedMove(ImmutableDictionary<int, Letter> state, int position, int newPosition, Letter letter, bool hasSwitched)
     {
@@ -391,18 +444,19 @@ public class Map
             }
         }
 
-        if (newPosition >= 11 && (newPosition % 2) == 1)
+        if (newPosition >= 11)
         {
-            if (!state.ContainsKey(newPosition + 1) || !state[newPosition + 1].IsFinished)
+            if ((newPosition - 11) % ColSize != (ColSize - 1))
             {
-                return false;
+                if (!state.ContainsKey(newPosition + 1) || !state[newPosition + 1].IsFinished)
+                {
+                    return false;
+                }
             }
         }
 
         return true;
-
     }
-
 }
 
 public struct Edge
@@ -417,7 +471,6 @@ public struct Edge
 }
 
 public record Segment(Edge Other);
-
 
 public static class Helpers
 {
@@ -434,27 +487,35 @@ public static class Helpers
         }
         sb.Append("#");
         sb.AppendLine();
-        sb.Append("###");
 
-        var firstRow = 11;
-        var secondRow = 12;
+        var colAdder = positions.Count == 8 ? 2 : 4;
 
-        for (var i = 0; i < 4; i++)
+        var first = 11;
+
+        for (var row = 0; row < colAdder; row++)
         {
-            sb.Append(positions.TryGetValue((i * 2) + firstRow, out var letter) ? letter.Char : '.');
-            sb.Append('#');
+            if (row == 0)
+            {
+                sb.Append("###");
+            }
+            else
+            {
+                sb.Append("  #");
+            }
+
+            for (var col = 0; col < 4; col++)
+            {
+                sb.Append(positions.TryGetValue((col * colAdder) + first + row, out var letter) ? letter.Char : '.');
+                sb.Append("#");
+
+            }
+            if (row == 0)
+            {
+                sb.Append("##");
+            }
+            sb.AppendLine();
         }
 
-        sb.AppendLine("##");
-
-        sb.Append("  #");
-        for (var i = 0; i < 4; i++)
-        {
-            sb.Append(positions.TryGetValue((i * 2) + secondRow, out var letter) ? letter.Char : '.');
-            sb.Append('#');
-        }
-
-        sb.AppendLine();
         sb.AppendLine($"  {new String('#', 9)}");
 
         Console.WriteLine(sb.ToString());
