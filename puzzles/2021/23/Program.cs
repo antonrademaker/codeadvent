@@ -3,11 +3,10 @@ using System.Diagnostics;
 using System.Text;
 
 var inputFiles = new string[] {
-//    "input/example.txt",
+    "input/example.txt",
     "input/input.txt"
 };
 var sw = new Stopwatch();
-
 
 foreach (var exampleFile in inputFiles)
 {
@@ -48,13 +47,11 @@ void CalculatePart1(string[] lines)
 
     for (var y = 18; y > 10; y--)
     {
-
         if (map.Edges[y].Accepts == positions[y].Char && (y % 2 == 0 || positions[y + 1].IsFinished))
         {
             var cur = positions[y];
             positions = positions.Remove(y).Add(y, cur with { IsFinished = true });
         }
-
     }
 
     positions.Print();
@@ -98,7 +95,6 @@ void CalculatePart2(string[] lines)
     Console.WriteLine($"Lowest: {currentLow}");
 }
 
-
 long CalculateLowestEnergy(Map map, ImmutableDictionary<int, Letter> positions)
 {
     var queue = new PriorityQueue<(ImmutableDictionary<int, Letter>, long), int>();
@@ -112,7 +108,7 @@ long CalculateLowestEnergy(Map map, ImmutableDictionary<int, Letter> positions)
     while (queue.TryDequeue(out var s, out var good))
     {
         (var state, var usedEnergy) = s;
-        var newStates = map.CalculateNewStates(state, usedEnergy);
+        var newStates = map.CalculateNewStates(state);
 
         foreach (var newState in newStates)
         {
@@ -141,7 +137,6 @@ long CalculatePositionHash(ImmutableDictionary<int, Letter> positions, long ener
     return pHash * (991 * energy);
 }
 
-
 Letter LetterFactory(char letter)
 {
     return letter switch
@@ -168,7 +163,6 @@ public class MapPart1 : Map
 
         var position = 11;
 
-
         Edges.AddRange(
             Enumerable.Range(0, position).Select(i => new Edge
             {
@@ -176,7 +170,6 @@ public class MapPart1 : Map
                 IsTopRow = true,
                 CantStop = cantStop.Contains(i)
             }));
-
 
         foreach (var c in "ABCD")
         {
@@ -188,21 +181,21 @@ public class MapPart1 : Map
 
             position += 2;
         }
-        Segments.Add(Edges[0], new List<Segment> {
-            new Segment(Edges[1])
+        Segments.Add(Edges[0], new List<Edge> {
+            Edges[1]
         });
         for (var x = 1; x < 10; x++)
         {
 
-            Segments.Add(Edges[x], new List<Segment> {
-                new Segment(Edges[x+1]),
-                new Segment(Edges[x-1])
+            Segments.Add(Edges[x], new List<Edge> {
+                Edges[x+1],
+                Edges[x-1]
             });
 
         }
 
-        Segments.Add(Edges[10], new List<Segment> {
-            new Segment(Edges[9])
+        Segments.Add(Edges[10], new List<Edge> {
+            Edges[9]
         });
 
         var baseRow = 2;
@@ -214,15 +207,14 @@ public class MapPart1 : Map
         for (int x = 0; x < 4; x++)
         {
 
-            Segments.Add(Edges[colStart], new List<Segment> {
-                new Segment(Edges[colStart+1]),
-                new Segment(Edges[baseRow])}
+            Segments.Add(Edges[colStart], new List<Edge> {
+                Edges[colStart+1],
+                Edges[baseRow]}
             );
 
+            Segments.Add(Edges[colStart + 1], new List<Edge> { Edges[colStart] });
 
-            Segments.Add(Edges[colStart + 1], new List<Segment> { new Segment(Edges[colStart]) });
-
-            Segments[Edges[baseRow]].Add(new Segment(Edges[colStart]));
+            Segments[Edges[baseRow]].Add(Edges[colStart]);
 
             colStart += colSize;
             baseRow += colSize;
@@ -230,12 +222,10 @@ public class MapPart1 : Map
     }
 }
 
-
 public class MapPart2 : Map
 {
     public MapPart2()
     {
-
         ColSize = 4;
 
         var cantStop = new List<int> { 2, 4, 6, 8 };
@@ -262,22 +252,22 @@ public class MapPart2 : Map
 
             position += 4;
         }
-        Segments.Add(Edges[0], new List<Segment> {
-            new Segment(Edges[1])
+        Segments.Add(Edges[0], new List<Edge> {
+            Edges[1]
         });
 
         for (var x = 1; x < 10; x++)
         {
 
-            Segments.Add(Edges[x], new List<Segment> {
-                new Segment(Edges[x+1]),
-                new Segment(Edges[x-1])
+            Segments.Add(Edges[x], new List<Edge> {
+                Edges[x+1],
+                Edges[x-1]
             });
 
         }
 
-        Segments.Add(Edges[10], new List<Segment> {
-            new Segment(Edges[9])
+        Segments.Add(Edges[10], new List<Edge> {
+            Edges[9]
         });
 
         var baseRow = 2;
@@ -288,23 +278,21 @@ public class MapPart2 : Map
 
         for (int x = 0; x < 4; x++)
         {
-            Segments[Edges[baseRow]].Add(new Segment(Edges[colStart]));
+            Segments[Edges[baseRow]].Add(Edges[colStart]);
 
-            Segments.Add(Edges[colStart], new List<Segment> {
-                new Segment(Edges[baseRow])}
+            Segments.Add(Edges[colStart], new List<Edge> {
+                Edges[baseRow]}
             );
 
             for (var col = 1; col < 4; col++)
             {
 
-                Segments.Add(Edges[colStart + col], new List<Segment> {
-                    new Segment(Edges[colStart + col - 1])
+                Segments.Add(Edges[colStart + col], new List<Edge> {
+                    Edges[colStart + col - 1]
                 });
 
-                Segments[Edges[colStart + col - 1]].Add(new Segment(Edges[colStart + col]));
-
+                Segments[Edges[colStart + col - 1]].Add(Edges[colStart + col]);
             }
-
 
             colStart += colSize;
             baseRow += 2;
@@ -319,10 +307,10 @@ public class Map
 
     public List<Edge> Edges { get; set; } = new();
 
-    public Dictionary<Edge, List<Segment>> Segments { get; set; } = new();
+    public Dictionary<Edge, List<Edge>> Segments { get; set; } = new();
 
 
-    public IEnumerable<(ImmutableDictionary<int, Letter> newState, long energy)> CalculateNewStates(ImmutableDictionary<int, Letter> state, long currentEnergy)
+    public IEnumerable<(ImmutableDictionary<int, Letter> newState, long energy)> CalculateNewStates(ImmutableDictionary<int, Letter> state)
     {
         foreach (var (position, letter) in state.Where(t => !t.Value.IsFinished).OrderByDescending(t => t.Value.Weight))
         {
@@ -377,7 +365,7 @@ public class Map
 
         foreach (var reachable in Segments[currentPosition])
         {
-            var newPosition = reachable.Other.Id;
+            var newPosition = reachable.Id;
 
             if (state.ContainsKey(newPosition))
             {
@@ -400,9 +388,9 @@ public class Map
 
             var newEnergy = letter.Weight;
 
-            if (AllowedMove(state, oldPosition, newPosition, letter, hasSwitched))
+            if (AllowedMove(state, newPosition, letter, hasSwitched))
             {
-                yield return (reachable.Other.Id, letter.Weight);
+                yield return (reachable.Id, letter.Weight);
             }
 
             foreach (var steps in ReachablePositions(path, dict, state, oldPosition, newPosition, letter, hasSwitched))
@@ -413,7 +401,7 @@ public class Map
         }
     }
 
-    private bool AllowedMove(ImmutableDictionary<int, Letter> state, int position, int newPosition, Letter letter, bool hasSwitched)
+    private bool AllowedMove(ImmutableDictionary<int, Letter> state, int newPosition, Letter letter, bool hasSwitched)
     {
         if (!hasSwitched)
         {
@@ -470,22 +458,19 @@ public struct Edge
     public bool CantStop { get; init; }
 }
 
-public record Segment(Edge Other);
-
 public static class Helpers
 {
-
     public static void Print(this ImmutableDictionary<int, Letter> positions)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(new String('#', 13));
+        sb.AppendLine(new string('#', 13));
 
         sb.Append('#');
         for (var i = 0; i < 11; i++)
         {
             sb.Append(positions.TryGetValue(i, out var letter) ? letter.Char : '.');
         }
-        sb.Append("#");
+        sb.Append('#');
         sb.AppendLine();
 
         var colAdder = positions.Count == 8 ? 2 : 4;
@@ -506,7 +491,7 @@ public static class Helpers
             for (var col = 0; col < 4; col++)
             {
                 sb.Append(positions.TryGetValue((col * colAdder) + first + row, out var letter) ? letter.Char : '.');
-                sb.Append("#");
+                sb.Append('#');
 
             }
             if (row == 0)
