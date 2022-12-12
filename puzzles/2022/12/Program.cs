@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 var files = Directory.GetFiles("input", "*.txt");
 
-foreach (var file in files.OrderBy(t => t).Take(1))
+foreach (var file in files.OrderBy(t => t).Skip(1))
 {
     var fileInput = File.ReadAllLines(file);
 
@@ -37,7 +37,7 @@ foreach (var file in files.OrderBy(t => t).Take(1))
 
     Console.WriteLine($"Start @ {start}, ends at :{end}");
 
-    var part1 = CalculatePart1(field,start,end);
+    var part1 = CalculatePart1(field, start, end);
     Console.WriteLine($"Part 1: {part1}{Environment.NewLine}");
 
 }
@@ -46,41 +46,57 @@ int CalculatePart1(Dictionary<Point, char> field, Point start, Point end)
 {
     var prio = new PriorityQueue<Path, int>();
 
-    prio.Enqueue(new Path('a',start, ImmutableArray<Point>.Empty.Add(start)), 1);
+    prio.Enqueue(new Path('E', end, ImmutableArray<Point>.Empty.Add(end)), 1);
 
-    while(prio.TryDequeue(out var path, out var priority))
+    var found = field.ToDictionary(p => p.Key, p => int.MaxValue);
+
+
+
+
+    while (prio.TryDequeue(out var path, out var priority))
     {
 
-        Console.WriteLine($"Dequeued: {path.Head}");
-        foreach(var sp in SurroundingPoints(path.Head)
+        Console.WriteLine($"Dequeued: {path.Head}  {prio.Count}");
+        foreach (var sp in SurroundingPoints(path.Head)
             .Where(candidate => !path.Points.Contains(candidate))
-            ) {
-            if (sp == end)
-            {
-                Console.WriteLine(path.ToString());
-                Console.WriteLine(string.Join(", ", path.Points));
-                return priority + 1;
-            }
-
+            )
+        {
             if (field.TryGetValue(sp, out char value))
             {
-                Console.WriteLine($"  Testing {sp} ({value} >= {path.Current})?");
-                
-                if (value == path.Current || (value - 1) == path.Current)
-                {
-                    Console.WriteLine($"    Queue: {value}@{sp}");
+                Console.WriteLine($"  Testing {sp} ({value} <= {path.Current})?");
 
-                    prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, priority + 1);
+                if (value == path.Current || value == path.Current - 1 || (path.Current == 'a' && value == 'S') || (path.Current == 'E' && value == 'z'))
+                {
+
+                    if (sp == start)
+                    {
+                        Console.WriteLine(path.ToString());
+                        Console.WriteLine(string.Join(", ", path.Points));
+                        return path.Points.Length;
+                    }
+
+                    if (found[sp] > path.Points.Length + 1)
+                    {
+                        found[sp] = path.Points.Length + 1;
+
+                        Console.WriteLine($"    Queue: {value}@{sp}");
+
+                        prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, -priority);
+
+                    } else
+                    {
+                        Console.WriteLine($"    Skipping {found[sp]} <= {path.Points.Length + 1}");
+                    }
                 }
                 else
                 {
-                    Console.WriteLine($"    Not queuing: {value} <= {path.Current} @ {sp}");
+                    //                  Console.WriteLine($"    Not queuing: {value} <= {path.Current} @ {sp}");
 
                 }
             }
         }
 
-        Console.WriteLine($"prio queue: {prio.Count}");
+        //     Console.WriteLine($"prio queue: {prio.Count}");
     }
 
     return 0;
