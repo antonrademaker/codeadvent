@@ -1,5 +1,4 @@
-﻿
-using System.Collections.Immutable;
+﻿using System.Collections.Immutable;
 
 var files = Directory.GetFiles("input", "*.txt");
 
@@ -8,10 +7,7 @@ foreach (var file in files.OrderBy(t => t))
     var fileInput = File.ReadAllLines(file);
 
     var lineLength = fileInput[0].Length;
-
     var field = new Dictionary<Point, char>();
-
-    var start = new Point(-1, -1);
     var end = new Point(-1, -1);
 
     for (var y = 0; y < fileInput.Length; y++)
@@ -21,28 +17,21 @@ foreach (var file in files.OrderBy(t => t))
             var value = fileInput[y][x];
             var p = new Point(x, y);
             field.Add(p, value);
-            if (value == 'S')
-            {
-                start = p;
-            }
-            else if (value == 'E')
+            if (value == 'E')
             {
                 end = p;
             }
         }
     }
 
-    Console.WriteLine($"Start @ {start}, ends at :{end}");
-
-    var part1 = CalculatePart(field, start, end, lineLength, fileInput.Length, c => c == 'S');
+    var part1 = CalculatePart(field, end, lineLength, fileInput.Length, c => c == 'S');
     Console.WriteLine($"Part 1: {part1}{Environment.NewLine}");
 
-    var part2 = CalculatePart(field, start, end, lineLength, fileInput.Length, c => c == 'a');
+    var part2 = CalculatePart(field, end, lineLength, fileInput.Length, c => c == 'a');
     Console.WriteLine($"Part 2: {part2}{Environment.NewLine}");
-
 }
 
-int CalculatePart(Dictionary<Point, char> field, Point start, Point end, int width, int height, Func<char, bool> isTarget)
+int CalculatePart(Dictionary<Point, char> field, Point end, int width, int height, Func<char, bool> isTarget)
 {
     var prio = new PriorityQueue<Path, int>();
 
@@ -50,77 +39,36 @@ int CalculatePart(Dictionary<Point, char> field, Point start, Point end, int wid
 
     var found = field.ToDictionary(p => p.Key, p => int.MaxValue);
 
-
-
-
     while (prio.TryDequeue(out var path, out var priority))
     {
-
-        //Console.WriteLine($"Dequeued: {path.Head} {prio.Count} {field[path.Head]}");
-        foreach (var sp in SurroundingPoints(path.Head)
-            .Where(candidate => !path.Points.Contains(candidate))
+        foreach (var sp in
+            SurroundingPoints(path.Head)
+                .Where(candidate => !path.Points.Contains(candidate))
             )
         {
-
-            if (field.TryGetValue(sp, out char value))
+            if (field.TryGetValue(sp, out char value) && ((path.Current >= 'a' && path.Current <= 'z' && value >= 'a' && value <= 'z' && value + 1 >= path.Current) || (path.Current == 'E' && value == 'z') || (path.Current == 'a' && value == 'S')))
             {
-                // Console.WriteLine($"  Testing {sp} ({value} <= {(char)(path.Current + 1)})? {value <= path.Current + 1}");
-
-                // value >= 'a' && value <= path.Current + 1) || (path.Current == 'S' && value == 'a') || (path.Current == 'z' && value == 'E'))
-
-                /*
-                z
-                zz
-                zy
-
-                opr
-                onmp
-
-                */
-
-
-                if ((path.Current >= 'a' && path.Current <= 'z' && value >= 'a' && value <= 'z' && value + 1 >= path.Current) || (path.Current == 'E' && value == 'z') || (path.Current == 'a' && value == 'S'))
+                if (isTarget(value))
                 {
-                    if (isTarget(value))
-                    {
-                        Console.WriteLine(path.ToString());
-                        Console.WriteLine(string.Join(", ", path.Points));
-                        Print(field, width, height, found);
+                    Console.WriteLine(path.ToString());
+                    Console.WriteLine(string.Join(", ", path.Points));
+                    Print(field, width, height, found);
 
-                        Print2(field, width, height, path.Points);
+                    Print2(field, width, height, path.Points);
 
-
-                        return path.Points.Length;
-                    }
-
-                    if (found[sp] > path.Points.Length + 1)
-                    {
-                        //       Console.WriteLine($"    Queue: {value}@{sp}-- {found[sp]} > {path.Points.Length + 1}");
-
-                        found[sp] = path.Points.Length + 1;
-
-
-                        prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, found[sp]);
-
-                    }
-                    else
-                    {
-                        //      Console.WriteLine($"    Skipping {found[sp]} <= {path.Points.Length + 1}");
-                    }
+                    return path.Points.Length;
                 }
-                else
-                {
-                    //                  Console.WriteLine($"    Not queuing: {value} <= {path.Current} @ {sp}");
 
+                if (found[sp] > path.Points.Length + 1)
+                {
+                    found[sp] = path.Points.Length + 1;
+                    prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, found[sp]);
                 }
             }
         }
-
-        //     Console.WriteLine($"prio queue: {prio.Count}");
     }
 
     Print(field, width, height, found);
-
 
     return 0;
 }
@@ -154,7 +102,6 @@ static void Print2(Dictionary<Point, char> field, int width, int height, Immutab
         Console.WriteLine();
     }
 }
-
 
 IEnumerable<Point> SurroundingPoints(Point point)
 {
