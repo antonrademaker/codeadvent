@@ -1,7 +1,5 @@
 ﻿
 using System.Collections.Immutable;
-using System.ComponentModel.DataAnnotations;
-using System.Security.Cryptography.X509Certificates;
 
 var files = Directory.GetFiles("input", "*.txt");
 
@@ -37,16 +35,16 @@ foreach (var file in files.OrderBy(t => t).Skip(1))
 
     Console.WriteLine($"Start @ {start}, ends at :{end}");
 
-    var part1 = CalculatePart1(field, start, end);
+    var part1 = CalculatePart1(field, start, end, lineLength, fileInput.Length);
     Console.WriteLine($"Part 1: {part1}{Environment.NewLine}");
 
 }
 
-int CalculatePart1(Dictionary<Point, char> field, Point start, Point end)
+int CalculatePart1(Dictionary<Point, char> field, Point start, Point end, int width, int height)
 {
     var prio = new PriorityQueue<Path, int>();
 
-    prio.Enqueue(new Path('E', end, ImmutableArray<Point>.Empty.Add(end)), 1);
+    prio.Enqueue(new Path('S', start, ImmutableArray<Point>.Empty.Add(start)), 1);
 
     var found = field.ToDictionary(p => p.Key, p => int.MaxValue);
 
@@ -56,36 +54,44 @@ int CalculatePart1(Dictionary<Point, char> field, Point start, Point end)
     while (prio.TryDequeue(out var path, out var priority))
     {
 
-        Console.WriteLine($"Dequeued: {path.Head}  {prio.Count}");
+        //Console.WriteLine($"Dequeued: {path.Head} {prio.Count} {field[path.Head]}");
         foreach (var sp in SurroundingPoints(path.Head)
             .Where(candidate => !path.Points.Contains(candidate))
             )
         {
+
             if (field.TryGetValue(sp, out char value))
             {
-                Console.WriteLine($"  Testing {sp} ({value} <= {path.Current})?");
+                // Console.WriteLine($"  Testing {sp} ({value} <= {(char)(path.Current + 1)})? {value <= path.Current + 1}");
 
-                if (value == path.Current || value == path.Current - 1 || (path.Current == 'a' && value == 'S') || (path.Current == 'E' && value == 'z'))
+                if ((value >= 'a' && value <= path.Current + 1) || (path.Current == 'S' && value == 'a') || (path.Current == 'z' && value == 'E'))
                 {
 
-                    if (sp == start)
+                    if (sp == end)
                     {
                         Console.WriteLine(path.ToString());
                         Console.WriteLine(string.Join(", ", path.Points));
+                        Print(field, width, height, found);
+
+                        Print2(field, width, height, path.Points);
+
+
                         return path.Points.Length;
                     }
 
                     if (found[sp] > path.Points.Length + 1)
                     {
+                        //       Console.WriteLine($"    Queue: {value}@{sp}-- {found[sp]} > {path.Points.Length + 1}");
+
                         found[sp] = path.Points.Length + 1;
 
-                        Console.WriteLine($"    Queue: {value}@{sp}");
 
-                        prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, -priority);
+                        prio.Enqueue(path with { Current = value, Head = sp, Points = path.Points.Add(sp) }, found[sp]);
 
-                    } else
+                    }
+                    else
                     {
-                        Console.WriteLine($"    Skipping {found[sp]} <= {path.Points.Length + 1}");
+                        //      Console.WriteLine($"    Skipping {found[sp]} <= {path.Points.Length + 1}");
                     }
                 }
                 else
@@ -99,8 +105,42 @@ int CalculatePart1(Dictionary<Point, char> field, Point start, Point end)
         //     Console.WriteLine($"prio queue: {prio.Count}");
     }
 
+    Print(field, width, height, found);
+
+
     return 0;
 }
+
+static void Print(Dictionary<Point, char> field, int width, int height, Dictionary<Point, int> found)
+{
+    var st = Enumerable.Range(0, 26).Select(i => (char)(i + 'a')).ToArray();
+    Console.WriteLine(st);
+
+    for (var y = 0; y < height; y++)
+    {
+        for (var x = 0; x < width; x++)
+        {
+            Console.Write((found[new Point(x, y)] < int.MaxValue) ? (field[new Point(x, y)].ToString().ToUpper()) : field[new Point(x, y)]);
+        }
+        Console.WriteLine();
+    }
+}
+
+static void Print2(Dictionary<Point, char> field, int width, int height, ImmutableArray<Point> path)
+{
+    var st = Enumerable.Range(0, 26).Select(i => (char)(i + 'a')).ToArray();
+    Console.WriteLine(st);
+
+    for (var y = 0; y < height; y++)
+    {
+        for (var x = 0; x < width; x++)
+        {
+            Console.Write(path.Contains(new Point(x, y)) ? (field[new Point(x, y)].ToString().ToUpper()) : field[new Point(x, y)]);
+        }
+        Console.WriteLine();
+    }
+}
+
 
 IEnumerable<Point> SurroundingPoints(Point point)
 {
