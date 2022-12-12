@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 var files = Directory.GetFiles("input", "*.txt");
 
-foreach (var file in files.OrderBy(t => t).Skip(1))
+foreach (var file in files.OrderBy(t => t))
 {
     var fileInput = File.ReadAllLines(file);
 
@@ -29,22 +29,24 @@ foreach (var file in files.OrderBy(t => t).Skip(1))
             {
                 end = p;
             }
-
         }
     }
 
     Console.WriteLine($"Start @ {start}, ends at :{end}");
 
-    var part1 = CalculatePart1(field, start, end, lineLength, fileInput.Length);
+    var part1 = CalculatePart(field, start, end, lineLength, fileInput.Length, c => c == 'S');
     Console.WriteLine($"Part 1: {part1}{Environment.NewLine}");
+
+    var part2 = CalculatePart(field, start, end, lineLength, fileInput.Length, c => c == 'a');
+    Console.WriteLine($"Part 2: {part2}{Environment.NewLine}");
 
 }
 
-int CalculatePart1(Dictionary<Point, char> field, Point start, Point end, int width, int height)
+int CalculatePart(Dictionary<Point, char> field, Point start, Point end, int width, int height, Func<char, bool> isTarget)
 {
     var prio = new PriorityQueue<Path, int>();
 
-    prio.Enqueue(new Path('S', start, ImmutableArray<Point>.Empty.Add(start)), 1);
+    prio.Enqueue(new Path('E', end, ImmutableArray<Point>.Empty.Add(end)), 1);
 
     var found = field.ToDictionary(p => p.Key, p => int.MaxValue);
 
@@ -64,10 +66,22 @@ int CalculatePart1(Dictionary<Point, char> field, Point start, Point end, int wi
             {
                 // Console.WriteLine($"  Testing {sp} ({value} <= {(char)(path.Current + 1)})? {value <= path.Current + 1}");
 
-                if ((value >= 'a' && value <= path.Current + 1) || (path.Current == 'S' && value == 'a') || (path.Current == 'z' && value == 'E'))
-                {
+                // value >= 'a' && value <= path.Current + 1) || (path.Current == 'S' && value == 'a') || (path.Current == 'z' && value == 'E'))
 
-                    if (sp == end)
+                /*
+                z
+                zz
+                zy
+
+                opr
+                onmp
+
+                */
+
+
+                if ((path.Current >= 'a' && path.Current <= 'z' && value >= 'a' && value <= 'z' && value + 1 >= path.Current) || (path.Current == 'E' && value == 'z') || (path.Current == 'a' && value == 'S'))
+                {
+                    if (isTarget(value))
                     {
                         Console.WriteLine(path.ToString());
                         Console.WriteLine(string.Join(", ", path.Points));
