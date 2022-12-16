@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 var files = Directory.GetFiles("input", "*.txt");
 
@@ -126,7 +125,6 @@ static (List<RowPart> ranges, HashSet<int> beacons) CalculateRow(List<(Point sen
             }
             else
             {
-                Debug.Assert(simpleRanges[^1].End < ranges[i].Start);
                 simpleRanges.Add(ranges[i]);
             }
         }
