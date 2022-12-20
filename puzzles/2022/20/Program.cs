@@ -1,10 +1,8 @@
-﻿using System.Diagnostics;
-
-internal class Program
+﻿internal sealed class Program
 {
     private static void Main(string[] args)
     {
-        var runDebug = false;
+        var runDebug = true;
 
         var files = Directory.GetFiles("input", "*.txt");
 
@@ -13,179 +11,61 @@ internal class Program
             Console.WriteLine($"{file}");
 
             var lines = File.ReadAllLines(file);
+            long part1 = CalculatePart(lines, 1, 1);
+            Console.WriteLine($"Part 1: {part1}");
 
-            var positions = lines.Select(t => int.Parse(t)).ToArray();
-            Data[] data = ParseData(positions);
-
-            Console.WriteLine($"{data.Length}");
-            var dataLength = data.Length;
-            if (runDebug)
-            {
-                Print(data[0], dataLength);
-            }
-
-
-            var half = dataLength / 2;
-
-            Data pointZero = data[0];
-
-            for (var i = 0; i < data.Length; i++)
-            {
-                var movePositions = data[i].Value % dataLength;
-
-                if (Math.Abs(movePositions) > half)
-                {
-                    // switch direction
-
-                    movePositions = (dataLength - movePositions) % dataLength;
-                }
-
-                var cur = data[i];
-
-                Debug.Assert(cur != null);
-
-                if (movePositions != 0)
-                {
-                    cur.Before.After = cur.After;
-                    cur.After.Before = cur.Before;
-
-                    if (movePositions > 0)
-                    {
-                        for (var counter = 0; counter < movePositions; counter++)
-                        {
-                            cur = cur.After;
-                        }
-
-                        cur.MixAfter(data[i]);
-
-                    }
-                    else if (movePositions < 0)
-                    {
-                        for (var counter = 0; counter > movePositions; counter--)
-                        {
-                            cur = cur.Before;
-                        }
-                        cur.MixBefore(data[i]);
-                    }
-                }
-                else
-                {
-                    pointZero = data[i];
-                }
-
-                if (runDebug)
-                {
-                    Print(data[0], dataLength);
-                }
-            }
-            // var mixedData = new Data[data.Length];
-
-            var curPointer = pointZero;
-
-            var searchLocations = new HashSet<int> { 1000 % dataLength, 2000 % dataLength, 3000 % dataLength };
-
-            var c = 0;
-            var sum = 0;
-            while (c < dataLength)
-            {
-                if (searchLocations.Contains(c))
-                {
-                    searchLocations.Remove(c);
-                    sum += curPointer.Value;
-                }
-
-                curPointer = curPointer.After;
-
-                c++;
-            }
-
-            Console.WriteLine($"Sum: {sum}");
-            //if (runDebug)
-            //{
-            //    break;
-            //}
+            long part2 = CalculatePart(lines, 811589153, 10);
+            Console.WriteLine($"Part 2: {part2}");
         }
     }
 
-    private static Data[] ParseData(int[] positions)
+    private static long CalculatePart(string[] lines, long key, int numberOfMixes)
     {
-        var data = new Data[positions.Length];
+        var data = GetData(lines, key);
 
-        data[0] = new Data(positions[0]);
+        var result = GetDecrypted(data, numberOfMixes);
 
-        for (var i = 1; i < positions.Length; i++)
+        var zeroPosition = result.FindIndex(r => r.Value == 0);
+
+        var resultLength = result.Count;
+
+        var part1 = new int[] { 1000, 2000, 3000 }.Sum(pos => result[(zeroPosition + pos) % resultLength].Value);
+        return part1;
+    }
+
+    private static List<(int Index, long Value)> GetData(string[] lines, long key)
+    {
+        return lines.Select((value, index) => (index, long.Parse(value) * key)).ToList();
+    }
+
+    private static List<(int Index, long Value)> GetDecrypted(List<(int, long)> data, int numberOfMixes)
+    {
+        List<(int Index, long Value)> result = new(data);
+
+        var dataLength = data.Count - 1;
+
+        for (var i = 0; i < numberOfMixes; i++)
         {
-            data[i] = new Data(positions[i], data[i - 1]);
+            foreach (var (index, value) in data)
+            {
+                var currentIndex = result.IndexOf((index, value));
+                var nextIndex = (int)((currentIndex + value) % dataLength);
+
+                while (nextIndex < 0)
+                {
+                    nextIndex += dataLength;
+                }
+
+                result.RemoveAt(currentIndex);
+                result.Insert(nextIndex, (index, value));
+            }
         }
 
-        data[^1].After = data[0];
-        data[0].Before = data[^1];
-        return data;
+        return result;
     }
 
-    private static void Print(Data data, int dataLength)
+    private static List<(int, long)> ParseData(int[] positions)
     {
-        var str = string.Join(',', ToValues(data, dataLength));
-
-        Console.WriteLine(str);
-    }
-
-    private static IEnumerable<int> ToValues(Data data, int dataLength)
-    {
-        var current = data;
-
-        var cnt = 0;
-
-        do
-        {
-            yield return current.Value;
-            current = current.After;
-        } while (current != data && cnt++ < dataLength);
-    }
-}
-
-[DebuggerDisplay("Val: {Value}, Before.Val: {Before.Value}, After.Val: {After.Value}")]
-internal sealed class Data
-{
-    public Data(int value)
-    {
-        Value = value;
-        Before = this;
-        After = this;
-    }
-
-    public Data(int value, Data before)
-    {
-        Value = value;
-        Before = before;
-        before.InitializeAfter(this);
-    }
-
-    public int Value { get; }
-
-    public Data Before { get; set; }
-    public Data After { get; set; }
-
-    private void InitializeAfter(Data data)
-    {
-        After = data;
-    }
-
-    public void MixAfter(Data data)
-    {
-        After.Before = data;
-
-        data.After = After;
-        data.Before = this;
-
-        After = data;
-    }
-
-    public void MixBefore(Data data)
-    {
-        Before.After = data;
-        data.Before = Before;
-        data.After = this;
-        Before = data;
+        return positions.Select(t => (t, (long)t)).ToList();
     }
 }
