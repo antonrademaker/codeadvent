@@ -4,7 +4,8 @@ using System.Text.RegularExpressions;
 internal class Program
 {
     private static readonly Regex regex = new Regex(@"^Blueprint (?<id>\d+):\s+Each ore robot costs (?<ore>\d+) ore.\s+Each clay robot costs (?<clay>\d+) ore.\s+Each obsidian robot costs (?<obsidianore>\d+) ore and (?<obsidianclay>\d+) clay.\s+Each geode robot costs (?<geodeore>\d+) ore and (?<geodeobsidian>\d+) obsidian.", RegexOptions.Multiline | RegexOptions.NonBacktracking);
-    private const int MaxTime = 24;
+    private const int MaxTimePart1 = 24;
+    private const int MaxTimePart2 = 32;
 
     private static void Main(string[] args)
     {
@@ -18,84 +19,84 @@ internal class Program
 
             var blueprints = regex.Matches(fileContent).Cast<Match>().Select(Parse);
 
-          //  Console.WriteLine(string.Join("\r\n", blueprints));
-
-            var scores = blueprints.ToDictionary(t => t, t => 0L);
-
-            foreach (var blueprint in blueprints)
-            {
-                var (round,hist) = CalculateBlueprint(blueprint);
-                Console.WriteLine($"Blueprint {blueprint.Id}: {round.StoredGeode}");
-
-                var score = round.StoredGeode;
-                Console.WriteLine(round);
-                Console.WriteLine(string.Join("\r\n", hist));
-                Console.WriteLine(score);
-
-               // Console.WriteLine(string.Join("\r\n", hist.Select(h => $"T: {24-h.TimeLeft}: resources {h.StoredOre},{h.StoredClay},{h.StoredObsidian},{h.StoredGeode} - robots: {h.ProductionOre},{h.ProductionClay},{h.ProductionObsidian},{h.ProductionGeode} ")));
-                scores[blueprint] = score;
-            }
-            var part1 = scores.Aggregate(0L, (current, scoredBlueprint) => current + scoredBlueprint.Key.Id * scoredBlueprint.Value);
-
-            Console.WriteLine($"Part 1: {part1}");
+            //  Console.WriteLine(string.Join("\r\n", blueprints));
+            Part1(blueprints);
+            Part2(blueprints);
         }
     }
 
-    private static (Round, ImmutableList<string>) CalculateBlueprint(Blueprint blueprint)
+    private static void Part1(IEnumerable<Blueprint> blueprints)
     {
-        var startRound = new Round() { TimeLeft = MaxTime  };
+        var scores = blueprints.ToDictionary(t => t, t => 0L);
+
+        Parallel.ForEach(blueprints, blueprint =>
+        {            
+            scores[blueprint] = CalculateBlueprint(blueprint, MaxTimePart1).StoredGeode;
+        });
+
+        var part1 = scores.Aggregate(0L, (current, scoredBlueprint) => current + scoredBlueprint.Key.Id * scoredBlueprint.Value);
+
+        Console.WriteLine($"Part 1: {part1}");
+    }
+
+    private static void Part2(IEnumerable<Blueprint> blueprints)
+    {
+        var scores = blueprints.ToDictionary(t => t, t => 0L);
+
+        Parallel.ForEach(blueprints.Take(3), blueprint =>
+        {
+            scores[blueprint] = CalculateBlueprint(blueprint, MaxTimePart2).StoredGeode;
+        });
+
+        var part1 = scores.Aggregate(1L, (current, scoredBlueprint) => current * scoredBlueprint.Value);
+
+        Console.WriteLine($"Part 2: {part1}");
+    }
+
+    private static Round CalculateBlueprint(Blueprint blueprint, int time)
+    {
+        var startRound = new Round() { TimeLeft = time };
         var candidate = startRound;
 
-        var queue = new Queue<(Round, ImmutableList<string>)>();
+        var queue = new Queue<Round>();
 
-        queue.Enqueue((startRound, new List<string> { $"1 Start" }.ToImmutableList()));
+        queue.Enqueue(startRound);
 
         var calculated = new HashSet<Round>();
 
-        var maxRequiredOreProduction = new int[] { blueprint.OreRobotOreCosts, blueprint.ClayRobotOreCosts, blueprint.ObsidianRobotOreCosts, blueprint.GeodeRobotOreCosts }.Max(); ;
+        var maxRequiredOreProduction = new int[] { blueprint.OreRobotOreCosts, blueprint.ClayRobotOreCosts, blueprint.ObsidianRobotOreCosts, blueprint.GeodeRobotOreCosts }.Max();
 
-        var history = ImmutableList<string>.Empty;
-
-        var cnt = 0;
 
         while (queue.TryDequeue(out var currentBlob))
         {
-            var (current, hist) = currentBlob;
+            var current = currentBlob;
             var minutesLeft = current.TimeLeft;
-
 
             if (minutesLeft == 0)
             {
                 if (current.StoredGeode > candidate.StoredGeode)
                 {
+                    Console.WriteLine($"Found {current.StoredGeode}");
                     candidate = current;
-                    history = hist;
                 }
-                else if (current.StoredGeode == current.StoredGeode)
+                else if (current.StoredGeode == candidate.StoredGeode)
                 {
-
                     //Console.WriteLine(string.Join("\r\n", hist));
                     //Console.WriteLine($"Geodes: {produced.StoredGeode}");
                 }
                 continue;
             }
 
+            var productionOre = current.ProductionRateOre;
+            var storedOre = Math.Min(current.StoredOre + productionOre, maxRequiredOreProduction * current.TimeLeft);
 
-            var productionOre = Math.Min(current.ProductionOre, maxRequiredOreProduction);
-            var maxOre = (minutesLeft * maxRequiredOreProduction) - (productionOre * (minutesLeft - 1));
-            var storedOre = Math.Min(current.StoredOre + productionOre, maxOre);
+            var productionClay = current.ProductionRateClay;
+            var storedClay = current.StoredClay + productionClay;
 
-            var productionClay = Math.Min(current.ProductionClay, blueprint.ObsidianRobotClayCosts);
-            var maxClay = (minutesLeft * blueprint.ObsidianRobotClayCosts) - (productionClay * (minutesLeft - 1));
+            var productionObsidian = current.ProductionRateObsidian;
+            var storedObsidian = current.StoredObsidian + productionObsidian;
 
-            var storedClay = Math.Min(current.StoredClay + productionClay, maxClay);
-
-            var productionObsidian = Math.Min(current.ProductionObsidian, blueprint.GeodeRobotObsidianCosts);
-
-            var maxObsidian = (minutesLeft * blueprint.GeodeRobotObsidianCosts) - (productionObsidian * (minutesLeft - 1));
-            var storedObsidian = Math.Min(current.StoredObsidian + productionObsidian, maxObsidian);
-
-            hist = hist.Add($"=== Minute {25 - minutesLeft} ===");
+            var storedGeode = current.StoredGeode + current.ProductionGeode;
 
             var produced = current with
             {
@@ -103,86 +104,67 @@ internal class Program
                 StoredOre = storedOre,
                 StoredClay = storedClay,
                 StoredObsidian = storedObsidian,
-                StoredGeode = current.StoredGeode + current.ProductionGeode,
-                ProductionOre = productionOre,
-                ProductionClay = productionClay,
-                ProductionObsidian = productionObsidian
+                StoredGeode = storedGeode,
+                ProductionRateOre = productionOre,
+                ProductionRateClay = productionClay,
+                ProductionRateObsidian = productionObsidian
             };
 
             if (calculated.Contains(produced))
             {
                 continue;
             }
+
             calculated.Add(produced);
 
-            var collected = $"{produced.StoredOre},{produced.StoredClay},{produced.StoredObsidian},{produced.StoredGeode}";
-
-            hist = hist.Add($"Collected resources: from {current.StoredOre},{current.StoredClay},{current.StoredObsidian},{current.StoredGeode} to {collected}");
-
-            var robots = $"{current.ProductionOre},{current.ProductionClay},{current.ProductionObsidian},{current.ProductionGeode}";
-            
-            hist = hist.Add($"Robots: {robots}");
-
-
-            if (robots == "1,4,2,1" && ( collected == "4,25,7,2" || collected == ""))
-            {
-                cnt++;
-            }
+            queue.Enqueue(produced);
 
             if (current.StoredOre >= blueprint.GeodeRobotOreCosts && current.StoredObsidian >= blueprint.GeodeRobotObsidianCosts)
-            { 
-                
-                var geodeStep = produced with
+            {
+                var createGeodeMachine = produced with
                 {
                     ProductionGeode = produced.ProductionGeode + 1,
                     StoredOre = produced.StoredOre - blueprint.GeodeRobotOreCosts,
                     StoredObsidian = produced.StoredObsidian - blueprint.GeodeRobotObsidianCosts
                 };
 
-                queue.Enqueue((geodeStep, hist.Add($"Spend {blueprint.GeodeRobotOreCosts},0,{blueprint.GeodeRobotObsidianCosts} on geode ")));
+                queue.Enqueue(createGeodeMachine);
             }
-            else
+
+            if (current.StoredOre >= blueprint.ObsidianRobotOreCosts && current.StoredClay >= blueprint.ObsidianRobotClayCosts && produced.ProductionRateObsidian < blueprint.GeodeRobotObsidianCosts)
             {
-
-
-                if (current.StoredOre >= blueprint.ObsidianRobotOreCosts && current.StoredClay >= blueprint.ObsidianRobotClayCosts)
+                var createObsidianMachine = produced with
                 {
-                    var obsidian = produced with
-                    {
-                        ProductionObsidian = produced.ProductionObsidian + 1,
-                        StoredOre = produced.StoredOre - blueprint.ObsidianRobotOreCosts,
-                        StoredClay = produced.StoredClay - blueprint.ObsidianRobotClayCosts
-                    };
-                    queue.Enqueue((obsidian, hist.Add($"Spend {blueprint.ObsidianRobotOreCosts},{blueprint.ObsidianRobotClayCosts},0 clay on obsidian")));
-                }
-
-
-                if (current.StoredOre >= blueprint.ClayRobotOreCosts)
-                {
-                    var createClayMachine = produced with
-                    {
-                        ProductionClay = produced.ProductionClay + 1,
-                        StoredOre = produced.StoredOre - blueprint.ClayRobotOreCosts
-                    };
-                    queue.Enqueue((createClayMachine, hist.Add($"Spend {blueprint.ClayRobotOreCosts},0,0 on clay robot")));
-                }
-
-                if (current.StoredOre >= blueprint.OreRobotOreCosts)
-                {
-                    var createOreMachine = produced with
-                    {
-                        ProductionOre = produced.ProductionOre + 1,
-                        StoredOre = produced.StoredOre - blueprint.OreRobotOreCosts
-                    };
-                    queue.Enqueue((createOreMachine, hist.Add($"Spend {blueprint.OreRobotOreCosts},0,0 on clay robot")));
-                }
-
-
-                queue.Enqueue((produced, hist.Add("Spend a minute")));
+                    ProductionRateObsidian = produced.ProductionRateObsidian + 1,
+                    StoredOre = produced.StoredOre - blueprint.ObsidianRobotOreCosts,
+                    StoredClay = produced.StoredClay - blueprint.ObsidianRobotClayCosts
+                };
+                queue.Enqueue(createObsidianMachine);
             }
+
+            if (current.StoredOre >= blueprint.ClayRobotOreCosts && current.ProductionRateClay < blueprint.ObsidianRobotClayCosts)
+            {
+                var createClayMachine = produced with
+                {
+                    ProductionRateClay = produced.ProductionRateClay + 1,
+                    StoredOre = produced.StoredOre - blueprint.ClayRobotOreCosts
+                };
+                queue.Enqueue(createClayMachine);
+            }
+
+            if (current.StoredOre >= blueprint.OreRobotOreCosts && current.ProductionRateOre < maxRequiredOreProduction)
+            {
+                var createOreMachine = produced with
+                {
+                    ProductionRateOre = produced.ProductionRateOre + 1,
+                    StoredOre = produced.StoredOre - blueprint.OreRobotOreCosts
+                };
+                queue.Enqueue(createOreMachine);
+            }
+
         }
 
-        return (candidate, history);
+        return candidate;
     }
 
     private static Blueprint Parse(Match match)
@@ -199,8 +181,7 @@ internal class Program
     }
 }
 
-
-public record Blueprint(
+public sealed record Blueprint(
     int Id,
     int OreRobotOreCosts,
     int ClayRobotOreCosts,
@@ -210,7 +191,7 @@ public record Blueprint(
     int GeodeRobotObsidianCosts
     );
 
-public record Round
+public sealed record Round
 {
     public Round()
     {
@@ -218,10 +199,10 @@ public record Round
 
     public required int TimeLeft { get; init; }
 
-    public int ProductionOre { get; init; } = 1;
-    public int ProductionClay { get; init; } = 0;
+    public int ProductionRateOre { get; init; } = 1;
+    public int ProductionRateClay { get; init; } = 0;
 
-    public int ProductionObsidian { get; init; } = 0;
+    public int ProductionRateObsidian { get; init; } = 0;
 
     public int ProductionGeode { get; init; } = 0;
     public int StoredOre { get; init; } = 0;
@@ -230,4 +211,19 @@ public record Round
     public int StoredObsidian { get; init; } = 0;
 
     public int StoredGeode { get; init; } = 0;
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        hash.Add(TimeLeft);
+        hash.Add(ProductionRateOre);
+        hash.Add(ProductionRateClay);
+        hash.Add(ProductionRateObsidian);
+        hash.Add(ProductionGeode);
+        hash.Add(StoredOre);
+        hash.Add(StoredClay);
+        hash.Add(StoredObsidian);
+        hash.Add(StoredGeode);
+        return hash.ToHashCode();
+    }
 }
