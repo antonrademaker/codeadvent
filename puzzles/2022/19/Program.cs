@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 internal class Program
 {
@@ -11,7 +10,7 @@ internal class Program
     {
         var files = Directory.GetFiles("input", "*.txt");
 
-        foreach (var file in files.OrderBy(t => t).Take(1))
+        foreach (var file in files.OrderBy(t => t))
         {
             Console.WriteLine($"{file}");
 
@@ -19,7 +18,6 @@ internal class Program
 
             var blueprints = regex.Matches(fileContent).Cast<Match>().Select(Parse);
 
-            //  Console.WriteLine(string.Join("\r\n", blueprints));
             Part1(blueprints);
             Part2(blueprints);
         }
@@ -93,14 +91,12 @@ internal class Program
             var productionObsidian = current.ProductionRateObsidian;
             var storedObsidian = Math.Min(current.StoredObsidian, current.TimeLeft * blueprint.GeodeRobotObsidianCosts - (current.TimeLeft - 1) * current.ProductionRateObsidian);
 
-            var storedGeode = current.StoredGeode + current.ProductionGeode;
-
             var produced = current with
             {
                 StoredOre = storedOre + productionOre,
                 StoredClay = storedClay + productionClay,
                 StoredObsidian = storedObsidian + productionObsidian,
-                StoredGeode = storedGeode,
+                StoredGeode = current.StoredGeode + current.ProductionRateGeode,
                 ProductionRateOre = productionOre,
                 ProductionRateClay = productionClay,
                 ProductionRateObsidian = productionObsidian
@@ -115,7 +111,7 @@ internal class Program
                 {
                     var createGeodeMachine = produced with
                     {
-                        ProductionGeode = produced.ProductionGeode + 1,
+                        ProductionRateGeode = produced.ProductionRateGeode + 1,
                         StoredOre = produced.StoredOre - blueprint.GeodeRobotOreCosts,
                         StoredObsidian = produced.StoredObsidian - blueprint.GeodeRobotObsidianCosts
                     };
@@ -196,7 +192,7 @@ public sealed record Round
 
     public int ProductionRateObsidian { get; init; } = 0;
 
-    public int ProductionGeode { get; init; } = 0;
+    public int ProductionRateGeode { get; init; } = 0;
     public int StoredOre { get; init; } = 0;
     public int StoredClay { get; init; } = 0;
 
@@ -211,7 +207,7 @@ public sealed record Round
         hash.Add(ProductionRateOre);
         hash.Add(ProductionRateClay);
         hash.Add(ProductionRateObsidian);
-        hash.Add(ProductionGeode);
+        hash.Add(ProductionRateGeode);
         hash.Add(StoredOre);
         hash.Add(StoredClay);
         hash.Add(StoredObsidian);
