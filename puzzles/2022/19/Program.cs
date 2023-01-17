@@ -10,13 +10,13 @@ internal class Program
     {
         var files = Directory.GetFiles("input", "*.txt");
 
-        foreach (var file in files.OrderBy(t => t))
+        foreach (var file in files.OrderBy(t => t).Skip(1))
         {
             Console.WriteLine($"{file}");
 
             var fileContent = File.ReadAllText(file);
 
-            var blueprints = regex.Matches(fileContent).Cast<Match>().Select(Parse);
+            var blueprints = regex.Matches(fileContent).Cast<Match>().Select(Parse).ToList();
 
             Part1(blueprints);
             Part2(blueprints);
@@ -25,30 +25,20 @@ internal class Program
 
     private static void Part1(IEnumerable<Blueprint> blueprints)
     {
-        var scores = blueprints.ToDictionary(t => t, t => 0L);
+        var scores = blueprints.AsParallel().Select(blueprint => (blueprintId: blueprint.Id, storedGeode: CalculateBlueprint(blueprint, MaxTimePart1).StoredGeode));
 
-        Parallel.ForEach(blueprints, blueprint =>
-        {
-            scores[blueprint] = CalculateBlueprint(blueprint, MaxTimePart1).StoredGeode;
-        });
-
-        var part1 = scores.Aggregate(0L, (current, scoredBlueprint) => current + scoredBlueprint.Key.Id * scoredBlueprint.Value);
+        var part1 = scores.Aggregate(0L, (current, scoredBlueprint) => current + scoredBlueprint.blueprintId * scoredBlueprint.storedGeode);
 
         Console.WriteLine($"Part 1: {part1}");
     }
 
     private static void Part2(IEnumerable<Blueprint> blueprints)
     {
-        var scores = blueprints.ToDictionary(t => t, t => 0L);
+        var toCalculate = blueprints.Take(3).AsParallel().Select(blueprint => CalculateBlueprint(blueprint, MaxTimePart2).StoredGeode);
 
-        Parallel.ForEach(blueprints.Take(3), blueprint =>
-        {
-            scores[blueprint] = CalculateBlueprint(blueprint, MaxTimePart2).StoredGeode;
-        });
+        var part2 = toCalculate.Aggregate((current, scoredBlueprint) => current * scoredBlueprint);
 
-        var part1 = scores.Aggregate(1L, (current, scoredBlueprint) => current * scoredBlueprint.Value);
-
-        Console.WriteLine($"Part 2: {part1}");
+        Console.WriteLine($"Part 2: {part2}");
     }
 
     private static Round CalculateBlueprint(Blueprint blueprint, int time)
@@ -64,7 +54,6 @@ internal class Program
 
         var maxRequiredOreProduction = new int[] { blueprint.OreRobotOreCosts, blueprint.ClayRobotOreCosts, blueprint.ObsidianRobotOreCosts, blueprint.GeodeRobotOreCosts }.Max();
 
-
         while (queue.TryDequeue(out var currentBlob))
         {
             var current = currentBlob;
@@ -73,14 +62,13 @@ internal class Program
             if (minutesLeft == 0)
             {
                 if (current.StoredGeode > candidate.StoredGeode)
-                {                    
+                {
                     candidate = current;
                 }
                 continue;
             }
 
             var maxRequiredOre = (maxRequiredOreProduction * minutesLeft) - (current.ProductionRateOre * (minutesLeft - 1));
-
 
             var productionOre = current.ProductionRateOre;
             var storedOre = Math.Min(current.StoredOre, maxRequiredOre);
