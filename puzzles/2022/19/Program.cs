@@ -30,7 +30,7 @@ internal class Program
         var scores = blueprints.ToDictionary(t => t, t => 0L);
 
         Parallel.ForEach(blueprints, blueprint =>
-        {            
+        {
             scores[blueprint] = CalculateBlueprint(blueprint, MaxTimePart1).StoredGeode;
         });
 
@@ -75,93 +75,85 @@ internal class Program
             if (minutesLeft == 0)
             {
                 if (current.StoredGeode > candidate.StoredGeode)
-                {
-                    Console.WriteLine($"Found {current.StoredGeode}");
+                {                    
                     candidate = current;
-                }
-                else if (current.StoredGeode == candidate.StoredGeode)
-                {
-                    //Console.WriteLine(string.Join("\r\n", hist));
-                    //Console.WriteLine($"Geodes: {produced.StoredGeode}");
                 }
                 continue;
             }
 
+            var maxRequiredOre = (maxRequiredOreProduction * minutesLeft) - (current.ProductionRateOre * (minutesLeft - 1));
+
+
             var productionOre = current.ProductionRateOre;
-            var storedOre = Math.Min(current.StoredOre + productionOre, maxRequiredOreProduction * current.TimeLeft);
+            var storedOre = Math.Min(current.StoredOre, maxRequiredOre);
 
             var productionClay = current.ProductionRateClay;
-            var storedClay = current.StoredClay + productionClay;
+            var storedClay = Math.Min(current.StoredClay, current.TimeLeft * blueprint.ObsidianRobotClayCosts - (current.TimeLeft - 1) * current.ProductionRateObsidian);
 
             var productionObsidian = current.ProductionRateObsidian;
-            var storedObsidian = current.StoredObsidian + productionObsidian;
+            var storedObsidian = Math.Min(current.StoredObsidian, current.TimeLeft * blueprint.GeodeRobotObsidianCosts - (current.TimeLeft - 1) * current.ProductionRateObsidian);
 
             var storedGeode = current.StoredGeode + current.ProductionGeode;
 
             var produced = current with
             {
-                TimeLeft = current.TimeLeft - 1,
-                StoredOre = storedOre,
-                StoredClay = storedClay,
-                StoredObsidian = storedObsidian,
+                StoredOre = storedOre + productionOre,
+                StoredClay = storedClay + productionClay,
+                StoredObsidian = storedObsidian + productionObsidian,
                 StoredGeode = storedGeode,
                 ProductionRateOre = productionOre,
                 ProductionRateClay = productionClay,
                 ProductionRateObsidian = productionObsidian
             };
 
-            if (calculated.Contains(produced))
+            if (calculated.Add(produced))
             {
-                continue;
-            }
+                produced = produced with { TimeLeft = minutesLeft - 1 };
+                queue.Enqueue(produced);
 
-            calculated.Add(produced);
-
-            queue.Enqueue(produced);
-
-            if (current.StoredOre >= blueprint.GeodeRobotOreCosts && current.StoredObsidian >= blueprint.GeodeRobotObsidianCosts)
-            {
-                var createGeodeMachine = produced with
+                if (current.StoredOre >= blueprint.GeodeRobotOreCosts && current.StoredObsidian >= blueprint.GeodeRobotObsidianCosts)
                 {
-                    ProductionGeode = produced.ProductionGeode + 1,
-                    StoredOre = produced.StoredOre - blueprint.GeodeRobotOreCosts,
-                    StoredObsidian = produced.StoredObsidian - blueprint.GeodeRobotObsidianCosts
-                };
+                    var createGeodeMachine = produced with
+                    {
+                        ProductionGeode = produced.ProductionGeode + 1,
+                        StoredOre = produced.StoredOre - blueprint.GeodeRobotOreCosts,
+                        StoredObsidian = produced.StoredObsidian - blueprint.GeodeRobotObsidianCosts
+                    };
 
-                queue.Enqueue(createGeodeMachine);
-            }
+                    queue.Enqueue(createGeodeMachine);
+                }
 
-            if (current.StoredOre >= blueprint.ObsidianRobotOreCosts && current.StoredClay >= blueprint.ObsidianRobotClayCosts && produced.ProductionRateObsidian < blueprint.GeodeRobotObsidianCosts)
-            {
-                var createObsidianMachine = produced with
+                if (current.StoredOre >= blueprint.ObsidianRobotOreCosts && current.StoredClay >= blueprint.ObsidianRobotClayCosts && produced.ProductionRateObsidian < blueprint.GeodeRobotObsidianCosts)
                 {
-                    ProductionRateObsidian = produced.ProductionRateObsidian + 1,
-                    StoredOre = produced.StoredOre - blueprint.ObsidianRobotOreCosts,
-                    StoredClay = produced.StoredClay - blueprint.ObsidianRobotClayCosts
-                };
-                queue.Enqueue(createObsidianMachine);
-            }
+                    var createObsidianMachine = produced with
+                    {
+                        ProductionRateObsidian = produced.ProductionRateObsidian + 1,
+                        StoredOre = produced.StoredOre - blueprint.ObsidianRobotOreCosts,
+                        StoredClay = produced.StoredClay - blueprint.ObsidianRobotClayCosts
+                    };
+                    queue.Enqueue(createObsidianMachine);
+                }
 
-            if (current.StoredOre >= blueprint.ClayRobotOreCosts && current.ProductionRateClay < blueprint.ObsidianRobotClayCosts)
-            {
-                var createClayMachine = produced with
+                if (current.StoredOre >= blueprint.ClayRobotOreCosts && current.ProductionRateClay < blueprint.ObsidianRobotClayCosts)
                 {
-                    ProductionRateClay = produced.ProductionRateClay + 1,
-                    StoredOre = produced.StoredOre - blueprint.ClayRobotOreCosts
-                };
-                queue.Enqueue(createClayMachine);
-            }
+                    var createClayMachine = produced with
+                    {
+                        ProductionRateClay = produced.ProductionRateClay + 1,
+                        StoredOre = produced.StoredOre - blueprint.ClayRobotOreCosts
+                    };
+                    queue.Enqueue(createClayMachine);
+                }
 
-            if (current.StoredOre >= blueprint.OreRobotOreCosts && current.ProductionRateOre < maxRequiredOreProduction)
-            {
-                var createOreMachine = produced with
+                if (current.StoredOre >= blueprint.OreRobotOreCosts && current.ProductionRateOre < maxRequiredOreProduction)
                 {
-                    ProductionRateOre = produced.ProductionRateOre + 1,
-                    StoredOre = produced.StoredOre - blueprint.OreRobotOreCosts
-                };
-                queue.Enqueue(createOreMachine);
+                    var createOreMachine = produced with
+                    {
+                        ProductionRateOre = produced.ProductionRateOre + 1,
+                        StoredOre = produced.StoredOre - blueprint.OreRobotOreCosts
+                    };
+                    queue.Enqueue(createOreMachine);
+                }
             }
-
         }
 
         return candidate;
