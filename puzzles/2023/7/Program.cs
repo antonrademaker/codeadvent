@@ -6,9 +6,9 @@ foreach (var file in inputFiles)
 
     var inputs = System.IO.File.ReadAllLines(file);
 
-    //var part1 = CalculatePart1(inputs);
+    var part1 = CalculatePart1(inputs);
 
-    //Console.WriteLine($"Part 1: {part1}");
+    Console.WriteLine($"Part 1: {part1}");
 
     var part2 = CalculatePart2(inputs);
 
