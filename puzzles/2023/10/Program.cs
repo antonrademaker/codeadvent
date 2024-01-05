@@ -85,9 +85,10 @@ public static class Program
     {
         var (startX, startY) = inputs.First(t => t.Value.IsStart).Key;
 
-        var distances = new Dictionary<(int x, int y), int>();
-
-        distances[(startX, startY)] = 0;
+        var distances = new Dictionary<(int x, int y), int>
+        {
+            [(startX, startY)] = 0
+        };
 
         var locations = new Queue<(int x, int y, Direction Direction, int depth)>();
 
