@@ -44,9 +44,7 @@ public static partial class Program
         var highPulses = 0L;
         var lowPulses = 0L;
 
-        var stepsToRx = 0L;
         var presses = 0;
-
 
         // only one modules has output to rx (ft)
         // find all modules that are input to that single module
@@ -69,7 +67,7 @@ public static partial class Program
 
                 foreach (var newPulse in newPulses)
                 {
-                    if (isPart2 && newPulse.Target == FTModuleName && newPulse.IsHigh && cycles.TryGetValue(newPulse.Source, out var cycle) && cycle == 0) 
+                    if (isPart2 && newPulse.IsHigh && newPulse.Target == FTModuleName && cycles.TryGetValue(newPulse.Source, out var cycle) && cycle == 0) 
                     {
                         cycles[newPulse.Source] = presses;
                         if (cycles.Values.All(cycle => cycle != 0))
@@ -83,7 +81,7 @@ public static partial class Program
             }
         }
         Console.WriteLine($"low: {lowPulses} * high: {highPulses} = {lowPulses * highPulses}");
-        return (part1: lowPulses * highPulses, part2: stepsToRx);
+        return (part1: lowPulses * highPulses, part2: 0);
     }
 
     private static Dictionary<string, IModule> ParseInput(string[] inputs)
