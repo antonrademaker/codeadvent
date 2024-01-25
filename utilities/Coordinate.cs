@@ -12,6 +12,9 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
     public static Coordinate<T> OffsetUpRight => new(T.One, -T.One);
     public static Coordinate<T> OffsetDownLeft => new(-T.One, T.One);
     public static Coordinate<T> OffsetDownRight => new(T.One, T.One);
+
+    public static Coordinate<T>[] Offsets => [OffsetLeft, OffsetRight, OffsetUp, OffsetDown];
+
     public static Coordinate<T> operator +(Coordinate<T> a, Coordinate<T> b) => new(a.X + b.X, a.Y + b.Y);
     public static Coordinate<T> operator +(Coordinate<T> a, (T X, T Y) b) => new(a.X + b.X, a.Y + b.Y);
     public static Coordinate<T> operator -(Coordinate<T> a, Coordinate<T> b) => new(a.X - b.X, a.Y - b.Y);
