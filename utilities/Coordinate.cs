@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System.Globalization;
+using System.Numerics;
 
 namespace AoC.Utilities;
 
@@ -41,4 +42,21 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
     public Coordinate<T> RotateLeft => new(Y, -X);
     public Coordinate<T> RotateRight => new(-Y, X);
     public override string ToString() => $"{X},{Y}";
+}
+
+public readonly record struct Coordinate3D<T>(T X, T Y, T Z) where T : INumber<T>
+{
+    public override string ToString() => $"{X},{Y},{Z}";
+
+    public static Coordinate3D<T> Parse(string input)
+    {
+        var values = input.Split(',').Select(v => T.Parse(v, CultureInfo.InvariantCulture)).ToArray();
+        
+        return new Coordinate3D<T>(values[0], values[1], values[2]);
+    }
+
+    public static Coordinate3D<T> operator +(Coordinate3D<T> a, Coordinate3D<T> b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+
+    public static Coordinate3D<T> operator +(Coordinate3D<T> a, (T X, T Y, T Z) b) => new(a.X + b.X, a.Y + b.Y, a.Z + b.Z);
+
 }
