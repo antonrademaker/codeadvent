@@ -35,12 +35,7 @@ int CalculateAnswer2(List<int[]> inputs)
     });
 }
 
-bool IsValid(ReadOnlySpan<int> reports, bool enableProblemDampener = false)
-{
-    return IsValidSequence(reports, !enableProblemDampener);
-}
-
-bool IsValidSequence(ReadOnlySpan<int> reports, bool isDampened = true)
+bool IsValid(ReadOnlySpan<int> reports)
 {
     var direction = Direction.Unknown;
 
