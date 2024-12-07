@@ -2,6 +2,12 @@
 
 string[] inputFiles = ["input/example.txt", "input/input.txt"];
 
+static void ParseLine(string line, out long target, out ReadOnlySpan<long> values)
+{
+    var parts = line.Split(":");
+    target = long.Parse(parts[0]);
+    values = parts[1].Split(" ", StringSplitOptions.RemoveEmptyEntries).Select(long.Parse).ToArray().AsSpan();    
+}
 
 foreach (string file in inputFiles)
 {
@@ -16,16 +22,57 @@ foreach (string file in inputFiles)
     Console.WriteLine($"{file}: Answer 2: {answer2}");
 }
 
-static int CalculateAnswer1(string[] input)
+static long CalculateAnswer1(string[] input)
 {
-    var currentSum = 0;
+    var currentSum = 0L;
+
+    foreach (var line in input)
+    {
+        ParseLine(line, out var target, out var values);
+
+        if (Valid(target, values[0], values[1..]))
+        {
+            currentSum += target;
+        }
+    }
 
     return currentSum;
 }
 
-static int CalculateAnswer2(string[] input)
+static bool Valid(long target, long value, ReadOnlySpan<long> values)
 {
-    var currentSum = 0;
+
+    if (values.Length == 0)
+    {
+        return target == value;
+    }
+
+    return Valid(target, value * values[0], values[1..]) || Valid(target, value + values[0], values[1..]);
+}
+
+static bool ValidPart2(long target, long value, ReadOnlySpan<long> values)
+{
+    if (values.Length == 0)
+    {
+        return target == value;
+    }
+
+    return ValidPart2(target, value * values[0], values[1..]) || ValidPart2(target, value + values[0], values[1..]) || ValidPart2(target, long.Parse(string.Concat(value, values[0])), values[1..]);
+}
+
+static long CalculateAnswer2(string[] input)
+{
+    var currentSum = 0L;
+
+    foreach (var line in input)
+    {
+        ParseLine(line, out var target, out var values);
+
+        if (ValidPart2(target, values[0], values[1..]))
+        {
+            currentSum += target;
+        }
+    }
 
     return currentSum;
 }
