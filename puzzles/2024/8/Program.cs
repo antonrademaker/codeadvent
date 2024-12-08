@@ -59,7 +59,7 @@ public readonly ref struct Input(string[] input)
                 }
                 else
                 {
-                    antennas.Add(frequency, [ new Coordinate(x, y)]);
+                    antennas.Add(frequency, [new Coordinate(x, y)]);
                 }
             }
         }
@@ -76,7 +76,7 @@ public readonly ref struct Input(string[] input)
         {
             for (var i = 0; i < locations.Count; i++)
             {
-                for(var j = 0; j < locations.Count; j++)
+                for (var j = 0; j < locations.Count; j++)
                 {
                     if (i == j)
                     {
@@ -116,10 +116,25 @@ public partial class Program
 
     public static long CalculateAnswer2(Input input)
     {
-        var currentSum = 0L;
+        HashSet<Coordinate> antinodes = [];
 
-        return currentSum;
+        foreach (var (a, b) in input.GetAntennaPairs())
+        {
+            var distance = a - b;
+            var antinode = a;
+            var valid = true;
+
+            while (valid)
+            {
+                antinodes.Add(antinode);
+                antinode += distance;
+                (valid, _) = input.GetLetter(antinode.X, antinode.Y);
+            }
+
+        }
+
+        return antinodes.Count;
     }
 
-    
+
 }
