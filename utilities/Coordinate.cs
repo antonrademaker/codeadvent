@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Diagnostics;
+using System.Globalization;
 using System.Numerics;
 
 namespace AoC.Utilities;
@@ -41,6 +42,14 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
     public Coordinate<T> OffsetTo(Coordinate<T> other) => new((other.X - X == T.Zero) ? T.Zero : (other.X - X < T.Zero) ? -T.One : T.One, (other.Y - Y == T.Zero) ? T.Zero : (other.Y - Y < T.Zero) ? -T.One : T.One);
     public Coordinate<T> RotateLeft => new(Y, -X);
     public Coordinate<T> RotateRight => new(-Y, X);
+
+    public T Length1D()
+    {        
+        Debug.Assert(X == T.Zero || Y == T.Zero, "Only works for X == 0 || Y == 0");
+        return T.Abs(X + Y);
+    }
+
+
     public override string ToString() => $"{X},{Y}";
 }
 
