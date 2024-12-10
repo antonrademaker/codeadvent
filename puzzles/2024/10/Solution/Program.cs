@@ -1,24 +1,13 @@
-﻿using System.Diagnostics;
-using System.Reflection.Metadata;
-using System.Runtime.Intrinsics.Arm;
-using System.Text;
-using AoC.Utilities;
-
-using Coordinate = AoC.Utilities.Coordinate<int>;
+﻿using Coordinate = AoC.Utilities.Coordinate<int>;
 
 namespace Solution;
 
 public class Program
 {
-    internal const bool EnableDebug = false;
-
-    internal const int EmptyBlock = -1;
-
-    static readonly string[] inputFiles = ["input/example1.txt", "input/input.txt"];
+    private static readonly string[] inputFiles = ["input/example1.txt", "input/input.txt"];
 
     public static void Main(string[] args)
     {
-
         foreach (string file in inputFiles)
         {
             Console.WriteLine($"Reading: {file}");
@@ -35,15 +24,22 @@ public class Program
 
     public static int CalculateAnswer1(Input input)
     {
-        var paths = 0;
+        var (paths, _) = CalculateHikes(input);
 
+        return paths;
+    }
+
+    private static (int paths, int ratings) CalculateHikes(Input input)
+    {
+        var paths = 0;
+        var ratings = 0;
         Queue<(Coordinate loc, int height)> queue = [];
 
         foreach (var startLoc in input.GetStartLocations())
         {
             queue.Enqueue((startLoc, 0));
 
-            HashSet<Coordinate> reachable = [];
+            Dictionary<Coordinate, int> reachable = [];
 
             while (queue.TryDequeue(out var work))
             {
@@ -56,13 +52,18 @@ public class Program
                     var (valid, height) = input.GetHeight(locationCandidate);
                     if (!valid || height == -1)
                     {
-                        // invalid or impassable 
+                        // invalid or impassable
                         continue;
                     }
 
                     if (currentHeight == 8 && height == 9)
                     {
-                        reachable.Add(locationCandidate);
+                        if (!reachable.TryGetValue(locationCandidate, out int value))
+                        {
+                            value = 0;
+                            reachable.Add(locationCandidate, value);
+                        }
+                        reachable[locationCandidate] = ++value;
                         continue;
                     }
 
@@ -71,30 +72,31 @@ public class Program
                         queue.Enqueue((locationCandidate, nextHeight));
                         continue;
                     }
-
                 }
             }
 
             paths += reachable.Count;
+            ratings += reachable.Values.Sum();
         }
-        return paths;
+        return (paths, ratings);
     }
 
-    static Input ParseFile(string file)
+    private static Input ParseFile(string file)
     {
         return new Input(File.ReadAllLines(file));
     }
 
     public static int CalculateAnswer2(Input input)
     {
-        return 0;
+        var (_, ratings) = CalculateHikes(input);
+
+        return ratings;
     }
 }
 
-
 public readonly ref struct Input(string[] input)
 {
-    private readonly ReadOnlySpan<int> Map = string.Concat(input).Select(c => c== '.'? -1 : c - '0').ToArray().AsSpan();
+    private readonly ReadOnlySpan<int> Map = string.Concat(input).Select(c => c == '.' ? -1 : c - '0').ToArray().AsSpan();
     public int Width { get; } = input[0].Length;
     public int Height { get; } = input.Length;
 
@@ -111,7 +113,7 @@ public readonly ref struct Input(string[] input)
     {
         List<Coordinate> locs = [];
 
-        for(var i = 0; i < Map.Length; i++)
+        for (var i = 0; i < Map.Length; i++)
         {
             if (Map[i] == 0)
             {

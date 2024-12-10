@@ -59,11 +59,48 @@ public class UnitTest
         Program.CalculateAnswer1(input).Should().Be(expected);
     }
 
-    [Fact]
-    public void TestExamplePart2()
-    {
-        var input = new Input(Example1.Split(Environment.NewLine));
+    private const string Example1Part2 =
+"""
+.....0.
+..4321.
+..5..2.
+..6543.
+..7..4.
+..8765.
+..9....
+""";
 
-        Program.CalculateAnswer2(input).Should().Be(2858);
+    private const string Example2Part2 =
+"""
+..90..9
+...1.98
+...2..7
+6543456
+765.987
+876....
+987....
+""";
+    
+    private const string Example3Part2 =
+"""
+012345
+123456
+234567
+345678
+4.6789
+56789.
+""";
+
+
+    [Theory]
+    [InlineData(Example1Part2, 3)]
+    [InlineData(Example2Part2, 13)]
+    [InlineData(Example3Part2, 227)]
+    [InlineData(Example1, 81)]
+    public void TestExamplePart2(string inputString, int expected)
+    {
+        var input = new Input(inputString.Split(Environment.NewLine));
+
+        Program.CalculateAnswer2(input).Should().Be(expected);
     }
 }
