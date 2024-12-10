@@ -1,4 +1,5 @@
-﻿using Coordinate = AoC.Utilities.Coordinate<int>;
+﻿using System.Diagnostics;
+using Coordinate = AoC.Utilities.Coordinate<int>;
 
 namespace Solution;
 
@@ -14,11 +15,19 @@ public class Program
 
             var input = ParseFile(file);
 
-            var answer1 = CalculateAnswer1(input);
-            Console.WriteLine($"{file}: Answer 1: {answer1}");
+            var startTime = Stopwatch.GetTimestamp();
 
+            var answer1 = CalculateAnswer1(input);
+            var elapsedTime = Stopwatch.GetElapsedTime(startTime);
+            Console.WriteLine($"{file}: Answer 1: {answer1} ({elapsedTime.TotalMilliseconds}ms)");
+
+
+
+            startTime = Stopwatch.GetTimestamp();
             var answer2 = CalculateAnswer2(input);
-            Console.WriteLine($"{file}: Answer 2: {answer2}");
+            elapsedTime = Stopwatch.GetElapsedTime(startTime);
+
+            Console.WriteLine($"{file}: Answer 2: {answer2} ({elapsedTime.TotalMilliseconds}ms)");
         }
     }
 
