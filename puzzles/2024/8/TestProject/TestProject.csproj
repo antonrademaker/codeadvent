@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\8\project.csproj" />
+    <ProjectReference Include="..\Solution\project.csproj" />
   </ItemGroup>
 
   <ItemGroup>
