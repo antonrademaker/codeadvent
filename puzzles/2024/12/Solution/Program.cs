@@ -185,18 +185,8 @@ public class Program
 public class Region(char letter)
 {
     public Dictionary<Coordinate, int> CoordinatesAndFences = [];
-
-    public HashSet<Perimeter> Perimeters = [];
-
     public char Letter { get; } = letter;
 }
-
-public class Perimeter
-{
-    public Coordinate Start { get; set; }
-    public Coordinate End { get; set; }
-}
-
 public readonly ref struct Input(string[] input)
 {
     private readonly ReadOnlySpan<char> Map = string.Concat(input).AsSpan();
