@@ -23,9 +23,9 @@
 
     private static int CalculateShortestPath((Dictionary<int, List<IBlizzard>> XBlizzards, Dictionary<int, List<IBlizzard>> YBlizzards) blizzards, Walls walls, Point start, Point end)
     {
-        var queue = new PriorityQueue<Point, int>();
+        var queue = new PriorityQueue<(Point, int), int>();
 
-        queue.Enqueue(start, 1);
+        queue.Enqueue((start, 1),1);
 
         var directions = new Point[]
         {
@@ -35,9 +35,9 @@
             new Point(0,1)
         };
 
-        while (queue.TryDequeue(out var current, out var round))
+        while (queue.TryDequeue(out var queued, out var prio))
         {
-
+            var (current, round) = queued;
 
             foreach (var direction in directions)
             {
@@ -53,26 +53,26 @@
 
                 var toCalculate = blizzards.XBlizzards[candidate.Y].Concat(blizzards.YBlizzards[candidate.X]).ToList();
 
-                foreach(var blizzard in toCalculate)
-                {
-                    Console.WriteLine($"{round}: {blizzard}: {blizzard.CalculateRound(round)} ({candidate})");
-                }
+                //foreach(var blizzard in toCalculate)
+                //{
+                //    Console.WriteLine($"{round}: {blizzard}: {blizzard.CalculateRound(round)} ({candidate})");
+                //}
 
                 if (toCalculate.All(c => c.CalculateRound(round) != candidate))
                 {
-                    queue.Enqueue(candidate, round + 1);
+                    queue.Enqueue((candidate, round + 1), CalculatePrio(round + 1, candidate));
                 }
             }
             if (current != start)
             {
-               
+
                 var toCalculate2 = blizzards.XBlizzards[current.Y].Concat(blizzards.YBlizzards[current.X]);
 
                 if (toCalculate2.All(c => c.CalculateRound(round) != current))
                 {
                     Console.WriteLine('W');
                     // We stay in position
-                    queue.Enqueue(current, round + 1);
+                    queue.Enqueue((current, round + 1), CalculatePrio(round + 1, current));
                 }
             }
             if (current == start && round < walls.Right)
@@ -80,7 +80,8 @@
                 Console.WriteLine('w');
 
                 // stay in start
-                queue.Enqueue(current, round + 1);
+                queue.Enqueue((current, round + 1), CalculatePrio(round + 5, current));
+
             }
         }
 
@@ -88,10 +89,15 @@
 
     }
 
+    private static int CalculatePrio(int round, Point point)
+    {
+        return round - point.X - point.Y;
+    }
+
     public static (Dictionary<int, List<IBlizzard>> XBlizzards, Dictionary<int, List<IBlizzard>> YBlizzards) Parse(string[] lines, Walls walls)
     {
-        var xBlizzards = Enumerable.Range(0, lines.Length - 2).ToDictionary(item => item, item => new List<IBlizzard>());
-        var yBlizzards = Enumerable.Range(0, lines[0].Length - 2).ToDictionary(item => item, item => new List<IBlizzard>());
+        var xBlizzards = Enumerable.Range(0, lines.Length - 1).ToDictionary(item => item, item => new List<IBlizzard>());
+        var yBlizzards = Enumerable.Range(0, lines[0].Length - 1).ToDictionary(item => item, item => new List<IBlizzard>());
 
         for (var y = 0; y < lines.Length - 2; y++)
         {
