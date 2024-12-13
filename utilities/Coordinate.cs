@@ -22,6 +22,10 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
     public static Coordinate<T> operator -(Coordinate<T> a, Coordinate<T> b) => new(a.X - b.X, a.Y - b.Y);
     public static Coordinate<T> operator -(Coordinate<T> a, (T X, T Y) b) => new(a.X - b.X, a.Y - b.Y);
     public static Coordinate<T> operator *(Coordinate<T> a, T multiplier) => new(a.X * multiplier, a.Y * multiplier);
+
+    public static Coordinate<T> operator +(Coordinate<T> a, T offset) => new(a.X + offset, a.Y + offset);
+    public static Coordinate<T> operator -(Coordinate<T> a, T offset) => new(a.X - offset, a.Y - offset);
+
     public Coordinate<T> Left => new(X - T.One, Y);
     public Coordinate<T> Right => new(X + T.One, Y);
     public Coordinate<T> Up => new(X, Y - T.One);

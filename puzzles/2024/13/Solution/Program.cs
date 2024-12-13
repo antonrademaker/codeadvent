@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 using static System.Net.Mime.MediaTypeNames;
-using Coordinate = AoC.Utilities.Coordinate<int>;
+using Coordinate = AoC.Utilities.Coordinate<long>;
 
 namespace Solution;
 
@@ -39,39 +39,31 @@ public partial class Program
     public static long CalculateAnswer1(Input input)
     {
        var machines = input.GetMachines();
-
-        var result = 0;
-
-        foreach (var machine in machines) {
-            // a * X.A + b * X.B = X.Price
-            // a * Y.A + b * Y.B = Y.Price
-
-
-            // a = Y.Price - b * Y.B / Y.A
-
-
-            // (Y.Price - b * Y.B / Y.A) * X.A + b * X.B = X.Price
-
-            // X.A * Y.Price - b * Y.B + b * X.B * Y.A = X.Price * Y.A
-
-
-
-
-
-        }
-
-
-
-        return result;
+        return machines.Sum(machine => CalculatePrize(machine.A, machine.B, machine.Price));
     }
 
+    public static long CalculatePrize(Coordinate A, Coordinate B, Coordinate price)
+    {
+        var top = A.X * price.Y - A.Y * price.X;
+        var bottom = A.X * B.Y - B.X * A.Y;
+        if (top % bottom == 0)
+        {
+            var b = top / bottom;
+            top = price.Y - b * B.Y;
+            if (top % A.Y == 0)
+            {
+                return 3 * top / A.Y + b;
+            }
+        }
+        return 0;
+    }
 
 
     public static long CalculateAnswer2(Input input)
     {
-        return 0;
+        var machines = input.GetMachines();
+        return machines.Sum(machine => CalculatePrize(machine.A, machine.B, machine.Price + 10000000000000L));
     }
-
 
     public static readonly Regex ParseRegex = Parser();
 

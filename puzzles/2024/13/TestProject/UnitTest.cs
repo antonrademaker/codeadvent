@@ -47,12 +47,12 @@ Prize: X=18641, Y=10279
 """;
 
     [Theory]
-    [InlineData(Example1, 140)]
-    [InlineData(Example2, 1930)]
-    [InlineData(Example3, 4)]
-    [InlineData(Example4, 12)]
-    [InlineData(Example5, 12)]
-    public void TestExample1Part1(string inputString, long expected)
+    [InlineData(Example1, 480)]
+    [InlineData(Example2, 280)]
+    [InlineData(Example3, 0)]
+    [InlineData(Example4, 200)]
+    [InlineData(Example5, 0)]
+    public void TestExamplesPart1(string inputString, long expected)
     {
         var input = new Input(inputString.Split(Environment.NewLine));
 
@@ -60,8 +60,12 @@ Prize: X=18641, Y=10279
     }
 
     [Theory]
-    [InlineData(Example1, 80)]
-    public void TestExamplePart2(string inputString, int expected)
+    [InlineData(Example1, 875318608908L)]
+    [InlineData(Example2, 0)]
+    [InlineData(Example3, 459236326669L)]
+    [InlineData(Example4, 0)]
+    [InlineData(Example5, 416082282239L)]
+    public void TestExamplesPart2(string inputString, long expected)
     {
         var input = new Input(inputString.Split(Environment.NewLine));
 
