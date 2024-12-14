@@ -21,6 +21,8 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
     public static Coordinate<T> operator +(Coordinate<T> a, (T X, T Y) b) => new(a.X + b.X, a.Y + b.Y);
     public static Coordinate<T> operator -(Coordinate<T> a, Coordinate<T> b) => new(a.X - b.X, a.Y - b.Y);
     public static Coordinate<T> operator -(Coordinate<T> a, (T X, T Y) b) => new(a.X - b.X, a.Y - b.Y);
+    public static Coordinate<T> operator %(Coordinate<T> a, (T X, T Y) b) => new(a.X % b.X, a.Y % b.Y);
+    public static Coordinate<T> operator %(Coordinate<T> a, Coordinate<T> b) => new(a.X % b.X, a.Y % b.Y);
     public static Coordinate<T> operator *(Coordinate<T> a, T multiplier) => new(a.X * multiplier, a.Y * multiplier);
 
     public static Coordinate<T> operator +(Coordinate<T> a, T offset) => new(a.X + offset, a.Y + offset);
@@ -53,6 +55,13 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
         return T.Abs(X + Y);
     }
 
+    public Coordinate<T> ResetToBoundary(T width, T height)
+    {
+        var x = X % width;
+        var y = Y % height;
+
+        return new Coordinate<T> (x < T.Zero ? x + width : x , y < T.Zero ? y + height : y);
+    }
 
     public override string ToString() => $"{X},{Y}";
 }
