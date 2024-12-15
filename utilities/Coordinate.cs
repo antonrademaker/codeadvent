@@ -63,7 +63,28 @@ public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> {
         return new Coordinate<T> (x < T.Zero ? x + width : x , y < T.Zero ? y + height : y);
     }
 
+    public static Coordinate<T> Parse(char input)
+    {
+
+        return input switch
+        {
+            '^' => OffsetUp,
+            '>' => OffsetRight,
+            '<' => OffsetLeft,
+            'v' or 'V' => OffsetDown,
+            _ => throw new InvalidOperationException($"Invalid input {input}")
+        };
+    }
     public override string ToString() => $"{X},{Y}";
+
+    public char ToChar() => this switch
+    {
+        Coordinate<T> c when c == OffsetUp => '^',
+        Coordinate<T> c when c == OffsetRight => '>',
+        Coordinate<T> c when c == OffsetLeft => '<',
+        Coordinate<T> c when c == OffsetDown => 'v',
+        _ => throw new InvalidOperationException($"Invalid input {this}")
+    };
 }
 
 public readonly record struct Coordinate3D<T>(T X, T Y, T Z) where T : INumber<T>
