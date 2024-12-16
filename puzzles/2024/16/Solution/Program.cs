@@ -1,6 +1,6 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Text;
-using System.Threading;
 using Coordinate = AoC.Utilities.Coordinate<long>;
 using Direction = AoC.Utilities.Coordinate<long>;
 
@@ -43,54 +43,76 @@ public partial class Program
 
     public static long CalculateAnswer1(Input input)
     {
-        var map = input.Map;
-
-        var reindeer = input.Start;
-
-        var reindeerDirection = Coordinate.OffsetRight;
-        var answer = Calculate(map, reindeer, reindeerDirection);
+        var (answer, _) = Calculate(ref input, input.Start, Coordinate.OffsetRight);
 
         return answer;
     }
 
-    private static long Calculate(Dictionary<Coordinate, char> map, Coordinate reindeer, Direction reindeerDirection)
+    private static (long, HashSet<Coordinate>) Calculate(ref Input input, Coordinate reindeer, Direction reindeerDirection)
     {
-        PriorityQueue<(Coordinate loc, Direction dir), int> queue = new();
-        queue.Enqueue((reindeer, reindeerDirection), 0);
+        PriorityQueue<(Coordinate loc, Direction dir, ImmutableHashSet<Coordinate> path), int> queue = new();
+
+        var currentPath = new List<Coordinate> { reindeer }.ToImmutableHashSet();
+
+
+        queue.Enqueue((reindeer, reindeerDirection, currentPath), 0);
 
         Dictionary<(Coordinate, Direction), int> reachable = [];
 
         var minScore = long.MaxValue;
 
-        while (queue.TryDequeue(out var element, out var currentSteps))
-        {
-            var (loc, dir) = element;
+        var onBestPaths = new List<ImmutableHashSet<Coordinate>>();
 
-            if (reachable.TryGetValue((loc,dir), out var currentScore) && currentSteps > currentScore)
+        while (queue.TryDequeue(out var element, out var score))
+        {
+            var (loc, dir, path) = element;
+
+            if (reachable.TryGetValue((loc, dir), out var currentScore) && score > currentScore)
             {
                 continue;
             }
 
-            reachable[(loc, dir)] = currentScore;
+            reachable[(loc, dir)] = score;
 
-            minScore = Calculate(map, queue, minScore, currentSteps, loc, dir, 0);
-            minScore = Calculate(map, queue, minScore, currentSteps, loc, dir.RotateLeft, TurnCost);
-            minScore = Calculate(map, queue, minScore, currentSteps, loc, dir.RotateRight, TurnCost);
+            minScore = Calculate(ref input, ref queue, minScore, score, loc, dir, path, 0, ref onBestPaths);
+
+            minScore = Calculate(ref input, ref queue, minScore, score, loc, dir.RotateLeft, path, TurnCost, ref onBestPaths);
+            minScore = Calculate(ref input, ref queue, minScore, score, loc, dir.RotateRight, path, TurnCost, ref onBestPaths);
 
         }
 
-        return minScore;
+        var bestPathCoordinates = new HashSet<Coordinate>();
+
+        foreach (var path in onBestPaths)
+        {
+            foreach (var point in path)
+            {
+                bestPathCoordinates.Add(point);
+            }
+        }
+
+        return (minScore, bestPathCoordinates);
     }
 
-    private static long Calculate(Dictionary<Coordinate, char> map, PriorityQueue<(Coordinate loc, Coordinate dir), int> queue, long minScore, int currentSteps, Coordinate loc, Coordinate newDir, int hit)
+    private static long Calculate(ref Input input, ref PriorityQueue<(Coordinate loc, Coordinate dir, ImmutableHashSet<Coordinate>), int> queue, long minScore, int currentSteps, Coordinate loc, Coordinate newDir, ImmutableHashSet<Coordinate> path, int hit, ref List<ImmutableHashSet<Coordinate>> foundPaths)
     {
-        if (map.TryGetValue(loc + newDir, out var mapObject2))
+        if (input.Map.TryGetValue(loc + newDir, out var mapObject2))
         {
             if (mapObject2 == 'E')
             {
-                if (minScore > currentSteps + hit + MoveAheadCost)
+                var newPath = path.Add(loc + newDir);
+
+                var toBeat = currentSteps + hit + MoveAheadCost;
+                if (minScore > toBeat)
                 {
                     minScore = currentSteps + hit + MoveAheadCost;
+                    foundPaths.Clear();
+                    foundPaths.Add(newPath);
+                }
+                else if (minScore == toBeat)
+                {
+                    foundPaths.Add(newPath);
+
                 }
             }
 
@@ -99,28 +121,34 @@ public partial class Program
         }
         else
         {
-            queue.Enqueue((loc + newDir, newDir), currentSteps + hit + MoveAheadCost);
+            var newPath = path.Add(loc + newDir);
+            queue.Enqueue((loc + newDir, newDir, newPath), currentSteps + hit + MoveAheadCost);
         }
 
         return minScore;
     }
 
-    public static void PrintMap(Dictionary<Coordinate, char> map, Coordinate robot, int width, int height)
+    public static void PrintMap(ref Input input, Coordinate start, HashSet<Coordinate>? bestPathCoordinates = null)
     {
-        StringBuilder sb = PositionsToStringBuilder(map, robot, width, height);
+        StringBuilder sb = PositionsToStringBuilder(ref input, start, bestPathCoordinates);
 
         Console.WriteLine(sb.ToString());
     }
 
-    private static StringBuilder PositionsToStringBuilder(Dictionary<Coordinate, char> map, Coordinate reindeer, int width, int height)
+    private static StringBuilder PositionsToStringBuilder(ref Input input, Coordinate reindeer, HashSet<Coordinate>? bestPathCoordinates = null)
     {
         var sb = new StringBuilder();
 
-        for (var y = 0; y < height; y++)
+        for (var y = 0; y < input.Height; y++)
         {
-            for (var x = 0; x < width; x++)
+            for (var x = 0; x < input.Width; x++)
             {
-                if (map.TryGetValue(new Coordinate(x, y), out var value))
+                var coordinate = new Coordinate(x, y);
+                if (bestPathCoordinates?.Contains(coordinate) ?? false)
+                {
+                    sb.Append('O');
+                }
+                else if (input.Map.TryGetValue(new Coordinate(x, y), out var value))
                 {
                     sb.Append(value);
                 }
@@ -142,7 +170,9 @@ public partial class Program
 
     public static long CalculateAnswer2(Input input)
     {
-        return 0;
+        var (_, onBestPaths) = Calculate(ref input, input.Start, Coordinate.OffsetRight);
+
+        return onBestPaths.Count;
     }
 
 }
@@ -162,13 +192,19 @@ public readonly struct Input
         {
             for (var x = 0; x < input[y].Length; x++)
             {
-                if (input[y][x] == 'S')
+                var val = input[y][x];
+                if (val == 'S')
                 {
                     Start = new Coordinate(x, y);
                 }
-                else if (input[y][x] != '.')
+                else if (val != '.')
                 {
-                    Map[new Coordinate(x, y)] = input[y][x];
+                    var coord = new Coordinate(x, y);
+                    if (val == 'E')
+                    {
+                        End = coord;
+                    }
+                    Map[coord] = val;
                 }
             }
         }
@@ -177,4 +213,5 @@ public readonly struct Input
 
     public readonly Dictionary<Coordinate, char> Map = [];
     public readonly Coordinate Start = default;
+    public readonly Coordinate End = default;
 }

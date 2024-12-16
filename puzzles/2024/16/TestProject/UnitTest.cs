@@ -52,20 +52,22 @@ public class UnitTest
 
         Program.CalculateAnswer1(input).Should().Be(expected);
     }
-    private const string Example3 = """
-#######
-#...#.#
-#.....#
-#..OO@#
-#..O..#
-#.....#
-#######
 
-<vv<<^^<<^^
+    private const string Example3 = """
+######
+##...#
+##.#.#
+#S.#E#
+##.#.#
+##...#
+######
 """;
+
+
     [Theory]
-    [InlineData(Example1, 9021)]
-    [InlineData(Example3, 618)]
+    [InlineData(Example1, 45)]
+    [InlineData(Example2, 64)]
+    [InlineData(Example3, 13)]
     public void TestExamplesPart2(string inputString, long expected)
     {
         var input = new Input(inputString.Split(Environment.NewLine));
