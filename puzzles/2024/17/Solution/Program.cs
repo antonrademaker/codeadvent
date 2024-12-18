@@ -165,11 +165,11 @@ public class State
     }
 
     public List<int> Output { get; } = [];
-    public string Program { get; init; }
+    public required string Program { get; init; }
 
-    public int[] Operators { get; init; }
+    public required int[] Operators { get; init; }
 
-    public int InstructionPointer { get; set; }
+    public int InstructionPointer { get; private set; }
 
     public override string ToString()
     {
