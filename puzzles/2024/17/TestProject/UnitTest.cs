@@ -135,19 +135,16 @@ Output:
     }
 
     private const string Example3 = """
-######
-##...#
-##.#.#
-#S.#E#
-##.#.#
-##...#
-######
+Register A: 2024
+Register B: 0
+Register C: 0
+
+Program: 0,3,5,4,3,0
 """;
 
 
     [Theory]
-    [InlineData(Example1, "")]
-    [InlineData(Example3, "")]
+    [InlineData(Example3, "117440")]
     public void TestExamplesPart2(string inputString, string expected)
     {
         var input = new Input(inputString);
