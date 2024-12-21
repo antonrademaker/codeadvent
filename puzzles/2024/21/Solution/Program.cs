@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics;
+using System.Text;
+using Microsoft.Extensions.ObjectPool;
 using Coordinate = AoC.Utilities.Coordinate<int>;
 
 namespace Solution;
@@ -29,10 +31,17 @@ public partial class Program
             elapsedTime = Stopwatch.GetElapsedTime(startTime);
 
             Console.WriteLine($"{file}: Answer 2: {answer2} ({elapsedTime.TotalMilliseconds}ms)");
+
+            objectPoolProvider.CreateStringBuilderPool();
         }
+
+        
     }
 
     public static readonly Dictionary<(char s, char t), int> cache = [];
+
+     public static readonly DefaultObjectPoolProvider objectPoolProvider = new DefaultObjectPoolProvider();
+    public static readonly ObjectPool<StringBuilder> stringBuilderPool = objectPoolProvider.CreateStringBuilderPool();
 
     public static readonly Dictionary<char, Coordinate> numericKeypad = new()
     {
@@ -133,21 +142,23 @@ public partial class Program
 
         var presses = end - start;
 
-        List<char> result = [];
+        var sb1 = stringBuilderPool.Get();
 
         if (start.X == end.X)
         {
-            result.AddRange(Enumerable.Repeat(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y)));
-            result.Add('A');
-            return [new string([.. result])];
+            sb1.Append(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y));
+
+            sb1.Append('A');
+            return [sb1.ToString()];
         }
 
         if (start.Y == end.Y)
         {
-            result.AddRange(Enumerable.Repeat(presses.X > 0 ? '>' : '<', int.Abs(presses.X)));
-            result.Add('A');
+            sb1.Append(presses.Y > 0 ? '>' : '<', int.Abs(presses.X));
 
-            return [new string([.. result])];
+            sb1.Append('A');
+
+            return [sb1.ToString()];
         }
 
         var c1 = new Coordinate(start.X, end.Y);
@@ -157,22 +168,25 @@ public partial class Program
 
         if (c1 != keypad[' '])
         {
-            result.AddRange(Enumerable.Repeat(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y)));
-            result.AddRange(Enumerable.Repeat(presses.X > 0 ? '>' : '<', int.Abs(presses.X)));
-            result.Add('A');
-            candidates.Add(new string([.. result]));
+            sb1.Append(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y));
+            sb1.Append(presses.Y > 0 ? '>' : '<', int.Abs(presses.X));
+            sb1.Append('A');
+            candidates.Add(sb1.ToString());
         }
 
         if (c2 != keypad[' '])
         {
-            List<char> result2 = [];
-            result2.AddRange(Enumerable.Repeat(presses.X > 0 ? '>' : '<', int.Abs(presses.X)));
-            result2.AddRange(Enumerable.Repeat(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y)));
-            result2.Add('A');
+            StringBuilder sb2 = stringBuilderPool.Get();
+            
+            sb2.Append(presses.Y > 0 ? '>' : '<', int.Abs(presses.X));
 
-            candidates.Add(new string([.. result2]));
+            sb2.Append(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y));
+            sb2.Append('A');
+
+            candidates.Add(sb2.ToString());
+            stringBuilderPool.Return(sb2);
         }
-
+        stringBuilderPool.Return(sb1);
         return candidates;
     }
 }
