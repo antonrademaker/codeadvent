@@ -34,13 +34,11 @@ public partial class Program
 
             objectPoolProvider.CreateStringBuilderPool();
         }
-
-        
     }
 
     public static readonly Dictionary<(char s, char t), int> cache = [];
 
-     public static readonly DefaultObjectPoolProvider objectPoolProvider = new DefaultObjectPoolProvider();
+    public static readonly DefaultObjectPoolProvider objectPoolProvider = new DefaultObjectPoolProvider();
     public static readonly ObjectPool<StringBuilder> stringBuilderPool = objectPoolProvider.CreateStringBuilderPool();
 
     public static readonly Dictionary<char, Coordinate> numericKeypad = new()
@@ -177,7 +175,7 @@ public partial class Program
         if (c2 != keypad[' '])
         {
             StringBuilder sb2 = stringBuilderPool.Get();
-            
+
             sb2.Append(presses.Y > 0 ? '>' : '<', int.Abs(presses.X));
 
             sb2.Append(presses.Y > 0 ? 'v' : '^', int.Abs(presses.Y));
