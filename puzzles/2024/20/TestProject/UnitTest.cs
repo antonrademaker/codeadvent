@@ -24,20 +24,20 @@ public class UnitTest
 """;
   
     [Theory]
-    [InlineData(Example1, 5, 20)]
-    public void TestExamplesPart1(string inputString, int cutOff, int expected)
+    [InlineData(Example1, 10, 10)]
+    public void TestExamplesPart1(string inputString, int cutoff, int expected)
     {
         var input = new Input(inputString);
 
-        Program.CalculateAnswer1(input, cutOff).Should().Be(expected);
+        Program.CalculateAnswer1(input, cutoff).Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(Example1, 16)]
-    public void TestExamplesPart2(string inputString, long expected)
+    [InlineData(Example1, 50, 278)]
+    public void TestExamplesPart2(string inputString, int cutoff, int expected)
     {
         var input = new Input(inputString);
 
-        Program.CalculateAnswer2(input).Should().Be(expected);
+        Program.CalculateAnswer2(input, cutoff).Should().Be(expected);
     }
 }

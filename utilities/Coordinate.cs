@@ -6,6 +6,8 @@ namespace AoC.Utilities;
 
 public readonly record struct Coordinate<T>(T X, T Y) where T: INumber<T> { 
 
+    public static Coordinate<T> Zero => new(X: T.Zero, Y: T.Zero);
+
     public static Coordinate<T> OffsetLeft => new(-T.One, T.Zero);
     public static Coordinate<T> OffsetRight => new(T.One, T.Zero);
     public static Coordinate<T> OffsetUp => new(T.Zero, -T.One);

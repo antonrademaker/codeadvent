@@ -1,11 +1,11 @@
 ﻿using System.Diagnostics;
-using Coordinate = AoC.Utilities.Coordinate<long>;
+using Coordinate = AoC.Utilities.Coordinate<int>;
 
 namespace Solution;
 
 public partial class Program
 {
-    private static readonly List<(string, int)> inputFiles = [("input/example1.txt", 10), ("input/input.txt", 100)];
+    private static readonly List<(string, int)> inputFiles = [("input/example1.txt", 50), ("input/input.txt", 100)];
 
 
     public static void Main(string[] _)
@@ -26,7 +26,7 @@ public partial class Program
             var input2 = ParseFile(file);
 
             startTime = Stopwatch.GetTimestamp();
-            var answer2 = CalculateAnswer2(input2);
+            var answer2 = CalculateAnswer2(input2, cutoff);
             elapsedTime = Stopwatch.GetElapsedTime(startTime);
 
             Console.WriteLine($"{file}: Answer 2: {answer2} ({elapsedTime.TotalMilliseconds}ms)");
@@ -38,18 +38,12 @@ public partial class Program
         return new Input(File.ReadAllText(file));
     }
 
-    private static readonly List<(Coordinate c1, Coordinate c2)> cheatPaths = [
-        (Coordinate.OffsetUp , Coordinate.OffsetUp),
-        (Coordinate.OffsetUp , Coordinate.OffsetLeft),
-        (Coordinate.OffsetUp , Coordinate.OffsetRight),
-        (Coordinate.OffsetLeft , Coordinate.OffsetLeft),
-        (Coordinate.OffsetLeft , Coordinate.OffsetDown),
-        (Coordinate.OffsetDown, Coordinate.OffsetDown),
-        (Coordinate.OffsetDown, Coordinate.OffsetRight),
-        (Coordinate.OffsetRight , Coordinate.OffsetRight)
-    ];
-
     public static int CalculateAnswer1(Input input, int cutoff)
+    {
+        return Calculate(input, cutoff, 2);
+    }
+
+    private static int Calculate(Input input, int cutoff, int maxShortcut)
     {
         var fromStartDistances = CalculateDistances(input, input.Start, input.End);
         var fromEndDistances = CalculateDistances(input, input.End, input.Start);
@@ -61,24 +55,25 @@ public partial class Program
 
         var cheats = new Dictionary<(Coordinate cheatStart, Coordinate cheatEnd), int>();
 
+        var cheatTargets = Enumerable.Range(-maxShortcut, maxShortcut * 2 + 1).SelectMany(
+            y => Enumerable.Range(-maxShortcut, maxShortcut * 2 + 1).Select(x => new Coordinate(x, y))
+            ).Select(p => (coord: p, distance: p.DistanceTo(Coordinate.Zero)))
+            .Where(p => p.distance > 1 && p.distance <= maxShortcut)
+            .Select(p => p.coord)
+            .ToList();
+
         foreach (var point in distances)
         {
-            foreach (var (c1, c2) in cheatPaths)
+            foreach (var cheatTargetNormal in cheatTargets)
             {
-                if (!input.Map.Contains(point.Key + c1))
-                {
-                    // not a wall to pass
-                    continue;
-                }
-
-                var cheatTarget = point.Key + c1 + c2;
-
-                if (cheats.ContainsKey((point.Key, cheatTarget)) || cheats.ContainsKey((cheatTarget, point.Key)))
-                {
-                    continue;
-                }
+                var cheatTarget = point.Key + cheatTargetNormal;
 
                 if (!fromEndDistances.ContainsKey(cheatTarget))
+                {
+                    continue;
+                }
+
+                if (cheats.ContainsKey((point.Key, cheatTarget)) || cheats.ContainsKey((cheatTarget, point.Key)))
                 {
                     continue;
                 }
@@ -88,21 +83,21 @@ public partial class Program
 
                 if (endDistance - startDistance <= 2)
                 {
+                    // no point in cheating if it's not shorter
                     continue;
                 }
 
-                cheats[(point.Key, cheatTarget)] = endDistance - startDistance - 2; // + two for cheat ticks
-
+                cheats[(point.Key, cheatTarget)] = endDistance - startDistance - cheatTargetNormal.DistanceTo(Coordinate.Zero); // + two for cheat ticks
             }
         }
 
-        if (cheats.Count < 100)
-        {
-            var cheatsBy = cheats.GroupBy(cheat => cheat.Value).OrderBy(group => group.Key);
 
+        var cheatsBy = cheats.GroupBy(cheat => cheat.Value).OrderBy(group => group.Key);
+        if (cheatsBy.Count() < 1000)
+        {
             foreach (var c in cheatsBy)
             {
-                Console.WriteLine(c.Key + " " + c.Count());
+                Console.WriteLine($"{c.Count()} x {c.Key}");
             }
         }
         return cheats.Values.Count(x => x >= cutoff);
@@ -140,11 +135,10 @@ public partial class Program
         return visited;
     }
 
-    public static long CalculateAnswer2(Input input)
+    public static long CalculateAnswer2(Input input, int cutoff)
     {
-        var counter = 0L;
+        return Calculate(input, cutoff, 20);
 
-        return counter;
     }
 
 }
