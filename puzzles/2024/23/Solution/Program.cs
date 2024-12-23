@@ -1,11 +1,13 @@
 ﻿using System.Diagnostics;
+using System.Security.Cryptography;
+using System.Text;
 using AoC.Utilities;
 
 namespace Solution;
 
 public partial class Program
 {
-    private static readonly List<string> inputFiles = ["input/example1.txt", "input/input.txt"/*, "input/aoc-2024-day-23-challenge-1.txt", "input/aoc-2024-day-23-challenge-2.txt", "input/aoc-2024-day-23-challenge-3.txt"*/];
+    private static readonly List<string> inputFiles = ["input/example1.txt", "input/input.txt", "input/aoc-2024-day-23-challenge-1.txt", "input/aoc-2024-day-23-challenge-2.txt", "input/aoc-2024-day-23-challenge-3.txt"];
 
     public static void Main(string[] _)
     {
@@ -82,8 +84,11 @@ public partial class Program
 
             foreach (var connection in computer.Connections)
             {
-                candidateSet.IntersectWith(input.Computers[connection].Connections);
-                candidateSet.Add(connection);
+                if (candidateSet.Contains(connection))
+                {
+                    candidateSet.IntersectWith(input.Computers[connection].Connections);
+                    candidateSet.Add(connection);
+                }
             }
             if (candidateSet.Count > biggestSet.Count)
             {
@@ -91,7 +96,11 @@ public partial class Program
             }
         }
 
-        return string.Join(',', biggestSet.ToArray().OrderBy(x => x));
+        var ans = string.Join(',', biggestSet.ToArray().OrderBy(x => x));
+                
+        Console.WriteLine(Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(ans))).ToLowerInvariant());
+
+        return ans;
     }
 
     public static string ToKey(string a, string b, string c)
