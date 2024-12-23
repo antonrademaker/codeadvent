@@ -1,14 +1,21 @@
 ﻿namespace AoC.Utilities;
 
-public class DefaultDictionary<TKey, TValue> : Dictionary<TKey, TValue> where TValue : new() where TKey : notnull
+public class DefaultFactoryDictionary<TKey, TValue> : Dictionary<TKey, TValue> where TKey : notnull
 {
+    private readonly Func<TKey, TValue> factory;
+
+    public DefaultFactoryDictionary(Func<TKey, TValue> creator)
+    {
+        this.factory = creator;
+    }
+
     public new TValue this[TKey key]
     {
         get
         {
             if (!TryGetValue(key, out var val))
             {
-                val = new TValue();
+                val = factory(key);
                 Add(key, val);
             }
             return val;
