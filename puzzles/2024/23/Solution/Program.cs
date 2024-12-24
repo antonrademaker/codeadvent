@@ -7,13 +7,25 @@ namespace Solution;
 
 public partial class Program
 {
-    private static readonly List<string> inputFiles = ["input/example1.txt", "input/input.txt", "input/aoc-2024-day-23-challenge-1.txt", "input/aoc-2024-day-23-challenge-2.txt", "input/aoc-2024-day-23-challenge-3.txt"];
+    private static readonly List<string> inputFiles = [
+        "input/example1.txt", 
+        "input/input.txt", 
+        "input/aoc-2024-day-23-challenge-1.txt",
+        "input/aoc-2024-day-23-challenge-2.txt", 
+        "input/aoc-2024-day-23-challenge-3.txt",
+        "input/aoc-2024-day-23-challenge-4.txt",
+        "input/aoc-2024-day-23-challenge-5.txt",
+        "input/aoc-2024-day-23-challenge-6.txt",
+        "input/aoc-2024-day-23-challenge-7.txt"
+
+        ];
 
     public static void Main(string[] _)
     {
         foreach (var file in inputFiles)
         {
-            Console.WriteLine($"Reading: {file}");
+            
+           // Console.WriteLine($"Reading: {file}");
 
             var input1 = ParseFile(file);
 
@@ -22,8 +34,7 @@ public partial class Program
             var answer1 = CalculateAnswer1(input1);
             var elapsedTime = Stopwatch.GetElapsedTime(startTime);
             Console.WriteLine($"{file}: Answer 1: {answer1} ({elapsedTime.TotalMilliseconds}ms)");
-            Console.WriteLine();
-
+           
             var input2 = ParseFile(file);
 
             startTime = Stopwatch.GetTimestamp();
@@ -31,6 +42,7 @@ public partial class Program
             elapsedTime = Stopwatch.GetElapsedTime(startTime);
 
             Console.WriteLine($"{file}: Answer 2: {answer2} ({elapsedTime.TotalMilliseconds}ms)");
+            Console.WriteLine();
         }
     }
 
@@ -45,20 +57,13 @@ public partial class Program
 
         foreach (var computerWithT in input.ComputersWithT)
         {
-            List<(string, string)> currentSets2 = [];
-
             foreach (var connection in input.Computers[computerWithT].Connections)
-            {
-                currentSets2.Add((computerWithT, connection));
-            }
-
-            foreach (var (a, b) in currentSets2)
-            {
-                foreach (var connection in input.Computers[b].Connections.Where(c => c != a))
+            {                
+                foreach (var connection2 in input.Computers[connection].Connections.Where(c => c != computerWithT))
                 {
-                    if (input.Computers[connection].Connections.Contains(a))
+                    if (input.Computers[connection2].Connections.Contains(computerWithT))
                     {
-                        currentSets3.Add(ToKey(a, b, connection));
+                        currentSets3.Add(ToKey(computerWithT, connection, connection2));
                     }
                 }
             }
@@ -129,7 +134,7 @@ public readonly struct Input
 
     public Input(string input)
     {
-        Lines = [.. input.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)];
+        Lines = [.. input.Split(input.Contains("\r\n") ? "\r\n" : "\n", StringSplitOptions.RemoveEmptyEntries)];
 
         foreach (var line in Lines)
         {
