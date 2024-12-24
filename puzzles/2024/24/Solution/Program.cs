@@ -71,34 +71,55 @@ public partial class Program
         return GetZWireValue(input);
     }
 
+
+
+    public static int CalculateAnswer2(Input input)
+    {
+        var xValue = GetXWireBitValue(input);
+        var yValue = GetYWireBitValue(input);
+
+        var expectedOutput = xValue + yValue;
+
+        var expectedBytes = new BitArray(BitConverter.GetBytes(expectedOutput));
+
+        return 0;
+    }
+
+
     private static long GetZWireValue(Input input)
     {
         return ToLong(input.WireValues.Where(t => t.Key.StartsWith('z')).OrderBy(x => x.Key).Select(t => t.Value).ToArray());
     }
 
-    private static long GetXWireValue(Input input)
+    private static BitArray GetZWireBitValue(Input input)
+    {
+        return new BitArray(input.WireValues.Where(t => t.Key.StartsWith('z')).OrderBy(x => x.Key).Select(t => t.Value).ToArray());
+    }
+
+    private static long GetXWireBitValue(Input input)
     {
         return ToLong(input.WireValues.Where(t => t.Key.StartsWith('x')).OrderBy(x => x.Key).Select(t => t.Value).ToArray());
     }
 
-    private static long GetYWireValue(Input input)
+    private static long GetYWireBitValue(Input input)
     {
-        return ToLong(input.WireValues.Where(t => t.Key.StartsWith('x')).OrderBy(x => x.Key).Select(t => t.Value).ToArray());
+        return ToLong(input.WireValues.Where(t => t.Key.StartsWith('y')).OrderBy(x => x.Key).Select(t => t.Value).ToArray());
     }
 
     private static long ToLong(bool[] x)
+    {
+        byte[] array = ToBitArray(x);
+
+        return BitConverter.ToInt64(array, 0);
+    }
+
+    private static byte[] ToBitArray(bool[] x)
     {
         var zWiresArray = new BitArray(x);
 
         var array = new byte[64];
         zWiresArray.CopyTo(array, 0);
-
-        return BitConverter.ToInt64(array, 0);
-    }
-
-    public static int CalculateAnswer2(Input input)
-    {
-        return 0;
+        return array;
     }
 }
 
